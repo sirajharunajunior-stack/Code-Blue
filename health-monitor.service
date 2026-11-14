@@ -1,0 +1,17 @@
+[Unit]
+Description=Astronaut health monitoring backend
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/health-monitor
+# Optional settings, e.g. HM_API_TOKEN=change-me   HM_SAMPLE_SECONDS=5
+EnvironmentFile=-/etc/default/health-monitor
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=3
+# Needs a hardware watchdog enabled in /boot/firmware/config.txt (dtparam=watchdog=on)
+WatchdogSec=0
+
+[Install]
+WantedBy=multi-user.target
