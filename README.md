@@ -11,6 +11,20 @@ and raises alerts. It is **not a medical device**; levels are informational.
 
 `health.db` must be next to `main.py` (or set `HM_DB=/path/to/health.db`).
 
+## Frontend
+
+`frontend/` is the ASTRA Next.js interface: biometrics, body explorer, guided
+assessments and hazard countermeasures. It runs on an exported demonstration
+snapshot, so the backend does not need to be running:
+
+    cd frontend
+    npm install
+    npm run dev                         # http://localhost:3000
+
+See `frontend/README.md` for the screen map, data provenance, regeneration
+(`python scripts/export-demo-data.py`) and how to point the data layer at this
+API.
+
 ## Health levels
 
 | Level | Meaning | Action |
