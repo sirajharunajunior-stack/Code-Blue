@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:
+    "SFMono-Regular", "Cascadia Code", "Roboto Mono", ui-monospace, monospace;
+  --color-canvas: #f2f6f3;
+  --color-surface: #ffffff;
+  --color-ink: #14352e;
+  --color-muted: #657a73;
+  --color-line: #dce7e0;
+  --color-brand: #2f6b58;
+  --color-brand-soft: #e5f0ea;
+  --color-good: #247452;
+  --color-good-soft: #e6f4ed;
+  --color-warn: #94600f;
+  --color-warn-soft: #fbf0da;
+  --color-crit: #ad3434;
+  --color-crit-soft: #fbe8e8;
+  --color-dim: #687771;
+  --color-dim-soft: #eef1ef;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  min-width: 320px;
+  background: var(--color-canvas);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(94, 157, 128, 0.1), transparent 28rem),
+    radial-gradient(circle at 96% 10%, rgba(70, 115, 99, 0.06), transparent 24rem),
+    var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: #cfe6da;
+  color: var(--color-ink);
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .card {
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    box-shadow: 0 12px 32px -28px rgba(20, 53, 46, 0.5);
+  }
+
+  .eyebrow {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1.4;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.35rem;
+    border-radius: 0.8rem;
+    border: 1px solid transparent;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease,
+      transform 140ms ease;
+    cursor: pointer;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .btn-primary {
+    background: var(--color-ink);
+    color: #fff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #0d2b24;
+  }
+
+  .btn-quiet {
+    border-color: var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .btn-quiet:hover:not(:disabled) {
+    border-color: #bfd2c8;
+    background: #f7faf8;
+  }
+
+  .btn-soft {
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+  }
+
+  .btn-soft:hover:not(:disabled) {
+    background: #d7e9df;
+  }
+
+  .btn-danger {
+    border-color: #efcaca;
+    background: var(--color-crit-soft);
+    color: var(--color-crit);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #f7d9d9;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 0.32rem 0.62rem;
+    font-size: 0.68rem;
+    font-weight: 650;
+    line-height: 1;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  .section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  .status-pulse {
+    animation: status-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pulse {
+    animation: none !important;
+  }
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 5%, transparent);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 220ms ease-out both;
+}

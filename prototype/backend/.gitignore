@@ -1,0 +1,7 @@
+monitor.db
+monitor.db-wal
+monitor.db-shm
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

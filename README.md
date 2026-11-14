@@ -1,4 +1,31 @@
-# Astronaut Health Monitor: backend
+# Astronaut Health Monitor
+
+## Prototype 1: live AI crew monitor
+
+The current runnable prototype lives in [`prototype/`](prototype/README.md). It
+adds a simulated live wearable, FastAPI/WebSocket monitoring service, SQLite
+history, rule-based alerting with personal baselines, optional OpenAI-compatible
+AI explanations, and a React/Tailwind/Recharts dashboard.
+
+Quick start:
+
+```bash
+cd prototype/backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+```bash
+cd prototype/frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. All data is simulated demo data and the prototype
+is not for medical decisions. See [`prototype/README.md`](prototype/README.md)
+for configuration, demo controls, API details, and tests.
+
+## Legacy: Raspberry Pi backend
 
 Offline backend for a Raspberry Pi. It serves the astronaut dataset (A1–A3) from `health.db`,
 reads the Pi's own sensors (subject `local`), classifies everything into four health levels,
