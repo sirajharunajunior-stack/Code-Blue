@@ -1,31 +1,4 @@
-# Astronaut Health Monitor
-
-## Prototype 1: live AI crew monitor
-
-The current runnable prototype lives in [`prototype/`](prototype/README.md). It
-adds a simulated live wearable, FastAPI/WebSocket monitoring service, SQLite
-history, rule-based alerting with personal baselines, optional OpenAI-compatible
-AI explanations, and a React/Tailwind/Recharts dashboard.
-
-Quick start:
-
-```bash
-cd prototype/backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-```bash
-cd prototype/frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173`. All data is simulated demo data and the prototype
-is not for medical decisions. See [`prototype/README.md`](prototype/README.md)
-for configuration, demo controls, API details, and tests.
-
-## Legacy: Raspberry Pi backend
+# Astronaut Health Monitor: backend
 
 Offline backend for a Raspberry Pi. It serves the astronaut dataset (A1–A3) from `health.db`,
 reads the Pi's own sensors (subject `local`), classifies everything into four health levels,
@@ -34,23 +7,10 @@ and raises alerts. It is **not a medical device**; levels are informational.
 ## Run
 
     pip install -r requirements.txt
-    python main.py                      # http://<pi-ip>:8000/docs
+    python main.py                      # API reference: http://<pi-ip>:8000/help
 
 `health.db` must be next to `main.py` (or set `HM_DB=/path/to/health.db`).
 
-## Frontend
-
-`frontend/` is the ASTRA Next.js interface: biometrics, body explorer, guided
-assessments and hazard countermeasures. It runs on an exported demonstration
-snapshot, so the backend does not need to be running:
-
-    cd frontend
-    npm install
-    npm run dev                         # http://localhost:3000
-
-See `frontend/README.md` for the screen map, data provenance, regeneration
-(`python scripts/export-demo-data.py`) and how to point the data layer at this
-API.
 
 ## Health levels
 
@@ -64,17 +24,20 @@ API.
 Limits live in the `metrics` table, so you can change a threshold in the database without touching code.
 Metrics with no lower limit (blood pressure, respiration, CO2) don't flag low values.
 
-## Endpoints (all under `/api`, docs at `/docs`)
+## Endpoints (all under `/api`; reference page at `/help`, works offline)
 
 | Endpoint | What it returns |
 |---|---|
-| `GET /api/health` | service status and per-sensor status (never needs the token) |
+| `GET /health` | service status and per-sensor status (never needs the token) |
 | `GET /subjects`, `PUT /subjects/{id}/environment?value=free_space\|planetary_surface` | crew list; change radiation environment |
 | `GET /crew` | everyone at a glance, worst level first, with flagged metrics |
 | `GET /latest?subject=A1` | newest reading of each vital and the overall level |
 | `GET /history?metric=heart_rate&subject=A1` | all readings; filter with `minutes`, `since`, `until`, `limit` |
 | `GET /daily?subject=A1` | sleep, exercise, radiation per day, with levels |
 | `GET /radiation?subject=A1` | cumulative dose vs 600 mSv career limit, projected days to limit |
+| `POST /readings` | **store readings from a camera, phone or device**: grades them, runs the alert rules, returns level, alerts and precautions |
+| `POST /subjects` | add a person to monitor (`{"id": "mira", "name": "Mira"}`) |
+| `GET /advice?subject=A1`, `GET /precautions` | safety precautions for everything currently flagged; the full library |
 | `GET /alerts?subject=A1&n=50` | newest alerts |
 | `GET /levels`, `GET /limits` | level names/colours/ranges; thresholds |
 | `GET /export.csv?subject=A1` | vitals as CSV |
@@ -108,22 +71,6 @@ Set `HM_SIMULATE=0` to make a missing sensor an error instead of falling back to
 `HM_SAMPLE_SECONDS`, `HM_SIMULATE`, `HM_RETENTION_DAYS` (live readings only; astronaut data is never deleted),
 `HM_ALERT_CONSECUTIVE`, `HM_ALERT_COOLDOWN_S`, `HM_BASELINE_Z`, `HM_CORS`.
 
-## Production notes
-
-* Run **one** Uvicorn process. The sampler owns the live sensor loop, so multiple
-  workers would record the same reading several times.
-* Set `HM_API_TOKEN` in any shared environment. Without it, every `/api` route is
-  readable by anyone who can reach the port. `GET /api/health` stays public for
-  liveness checks.
-* Keep the API behind a TLS reverse proxy and restrict `HM_CORS` to the deployed
-  frontend origin.
-* `HM_SIMULATE=1` is the default. Set it to `0` so a missing sensor is reported
-  as an error instead of silently substituting simulated values.
-* The sampler prunes only the `local` subject after `HM_RETENTION_DAYS`; astronaut
-  records are never deleted.
-* `/api/health` reports `sample_age_seconds`, `sampler_ok` and `sensors_ok`, so a
-  stuck sampler or failed sensor shows up as `degraded`.
-
 ## Tests
 
     python tests/test_core.py                          # logic only, no extra packages
@@ -137,3 +84,50 @@ Copy the folder to `/home/pi/health-monitor`, then:
 
     sudo cp health-monitor.service /etc/systemd/system/
     sudo systemctl enable --now health-monitor
+
+## Camera monitor (heart rate + breathing from the phone camera)
+
+`GET /camera` serves a page that reads heart rate and breathing from the front camera (remote photoplethysmography,
+all processing in the browser) and saves them with `POST /api/readings`, so camera readings are graded with the same
+four levels, trigger the same alerts and show the same safety precautions as every other sensor.
+
+**Phones only allow the camera over HTTPS** (or on `localhost`), so serve the backend with a certificate:
+
+    ./make_cert.sh 192.168.1.50                      # your Pi/computer LAN address
+    HM_SSL_CERT=certs/cert.pem HM_SSL_KEY=certs/key.pem python main.py
+    # on the phone: open https://192.168.1.50:8000/camera and accept the one-time certificate warning
+
+In the page: pick who is being measured (or **+ New**), tap **Start**, fit your face in the oval and stay still.
+It saves about every 10 seconds, only while the signal is good. If the backend uses `HM_API_TOKEN`, the page asks for it.
+Tip: give each real person their own subject. Don't send camera readings to `local` while the simulated sensors are on
+(they write heart rate there too), and don't mix them into the A1-A3 dataset.
+
+Limits: camera heart rate is typically within a few bpm in good, steady light; breathing is rougher; SpO2, blood
+pressure and temperature are not measured. Not a medical device.
+
+### `POST /api/readings`
+
+    {"subject": "mira", "source": "camera",
+     "readings": [{"metric": "heart_rate", "value": 72}, {"metric": "resp_rate", "value": 15}]}
+
+Valid metrics: heart_rate, resp_rate, spo2, body_temp, bp_systolic, bp_diastolic, cabin_co2 (daily metrics are not
+accepted). Implausible values (e.g. heart rate 900) are rejected with 400 and nothing is stored; the whole request
+is all-or-nothing. `ts` (epoch seconds) is optional and must be within a day of now.
+
+## Offline operation (spacecraft)
+
+Everything runs on board with no internet: SQLite storage, the alert engine, the safety precautions and the camera
+monitor. Nothing is fetched from outside, and a test (`tests/test_offline.py`) fails if code or a served page starts to.
+
+* **Install without internet.** On a computer *with* internet, before launch: `./make_wheelhouse.sh` (or
+  `./make_wheelhouse.sh manylinux2014_aarch64 3.11` for a 64-bit Pi on Python 3.11). Copy the whole folder, including
+  `wheelhouse/`, to the ship, then `./install_offline.sh`. (These two scripts are untested here; try them on the real target hardware before launch.)
+* **Pages that work offline:** `/guide` (the full crew medical guide), `/help` (API reference), `/camera` (camera monitor).
+  FastAPI's built-in `/docs` and `/redoc` are switched off because they load their code from a CDN.
+* **HTTPS for the camera** uses a local self-signed certificate (`make_cert.sh`); no outside certificate authority needed.
+* **Clock:** there is no internet time on board, so the computer's clock must be set correctly (a Pi has no battery clock;
+  add an RTC module). Readings older or newer than a day from the clock are refused.
+* **Precautions are written for spaceflight:** no gravity-based positions (nothing says lie down or sit upright), CPR
+  refers to the on-board microgravity procedure, and the crew medical officer acts first; the mission control flight
+  surgeon is contacted when a link is available, with no waiting for a reply.
+* **Sending data to the ground** when a link exists: `GET /api/export.csv?subject=<id>` and `GET /api/alerts`.

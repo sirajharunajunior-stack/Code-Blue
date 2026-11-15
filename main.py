@@ -1,60 +1,65 @@
-"""Astronaut health-monitoring API.   Run:  python main.py     Docs: http://<pi-ip>:8000/docs
+"""Astronaut health-monitoring API.   Run:  python main.py     Reference: http://<pi-ip>:8000/help (offline)
 
 Set HM_API_TOKEN to require an X-API-Token header on every /api route except /api/health.
 """
 import hmac
-import logging
 import os
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import List, Optional
 
 import uvicorn
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from pydantic import BaseModel, Field
 
+import advice as advice_lib   # the /advice endpoint below is also called advice
+import alerts as alerts_mod
 import config
 import db
+import guide
 import service
 from sampler import Sampler
-
-log = logging.getLogger("api")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
-    app.state.started_at = time.time()
     app.state.sampler = None
     if config.SAMPLER_ENABLED:
         app.state.sampler = Sampler()
-        app.state.sampler.start()            # takes one sample before returning
-    if not config.API_TOKEN:
-        log.warning("HM_API_TOKEN is not set: the API is readable by anyone who can reach port %s", config.PORT)
-    if config.SIMULATE:
-        log.warning("HM_SIMULATE is on: sensor values are simulated, not measured")
+        app.state.sampler.sample_once()      # so /api/health has data straight away
+        app.state.sampler.start()
+    # one alert engine shared by the sensors and POST /api/readings, so streaks and cooldowns agree
+    app.state.engine = app.state.sampler.engine if app.state.sampler else alerts_mod.AlertEngine()
     yield
     if app.state.sampler:
         app.state.sampler.stop()
 
 
 app = FastAPI(title="Astronaut Health Monitor", version="1.0", lifespan=lifespan,
+              docs_url=None, redoc_url=None,      # FastAPI's /docs and /redoc load their code from a CDN: blank without internet
               description="Offline health-monitoring backend. Not a medical device: all levels are informational.")
 if config.CORS_ORIGINS:
     app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 
-@app.middleware("http")
-async def security_headers(request: Request, call_next):
-    """Headers a reverse proxy cannot always add, and a stable JSON error shape."""
-    response = await call_next(request)
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-Frame-Options", "DENY")
-    response.headers.setdefault("Referrer-Policy", "no-referrer")
-    if request.url.path.startswith("/api/"):
-        response.headers.setdefault("Cache-Control", "no-store")
-    return response
+class ReadingIn(BaseModel):
+    metric: str = Field(..., description="heart_rate, resp_rate, spo2, body_temp, bp_systolic, bp_diastolic or cabin_co2")
+    value: float
+    ts: Optional[float] = Field(None, description="epoch seconds; default: now")
+
+
+class IngestIn(BaseModel):
+    subject: str = Field(config.LOCAL_SUBJECT, description="who the readings belong to")
+    source: str = Field("api", max_length=40, description="e.g. 'camera'")
+    readings: List[ReadingIn] = Field(..., min_length=1, max_length=20)
+
+
+class SubjectIn(BaseModel):
+    id: str = Field(..., description="1-32 letters, digits, '-' or '_'")
+    name: str
 
 
 def require_token(x_api_token: str = Header(default="")):
@@ -82,16 +87,7 @@ def subj():
 @app.get("/api/health", tags=["status"])
 def health():
     sampler = app.state.sampler
-    db_ok = db.ping()
-    age = sampler.sample_age() if sampler else None
-    stale_after = max(60.0, config.SAMPLE_SECONDS * 4)
-    sampler_ok = sampler is None or (age is not None and age <= stale_after)
-    sensors_ok = not sampler or all(v.get("ok") is not False for v in sampler.status.values())
-    ok = db_ok and sampler_ok and sensors_ok
-    return {"status": "ok" if ok else "degraded", "time": service.iso(time.time()),
-            "db": os.path.basename(config.DB_PATH), "db_ok": db_ok,
-            "sample_age_seconds": None if age is None else round(age, 1),
-            "sampler_ok": sampler_ok, "sensors_ok": sensors_ok,
+    return {"status": "ok", "time": service.iso(time.time()), "db": config.DB_PATH,
             "sensors": sampler.status if sampler else {},
             "baseline_model": bool(sampler and sampler.engine.baseline.loaded)}
 
@@ -99,6 +95,11 @@ def health():
 @api.get("/subjects", tags=["crew"])
 def subjects():
     return call(service.subjects)
+
+
+@api.post("/subjects", tags=["crew"], summary="Add a person to monitor")
+def add_subject(body: SubjectIn):
+    return call(service.add_subject, body.id, body.name)
 
 
 @api.put("/subjects/{sid}/environment", tags=["crew"])
@@ -114,6 +115,13 @@ def crew():
 @api.get("/latest", tags=["vitals"])
 def latest(subject: str = subj()):
     return call(service.latest, subject)
+
+
+@api.post("/readings", tags=["vitals"],
+          summary="Store readings from a camera, app or device; grade them, run the alert rules, return precautions")
+def post_readings(body: IngestIn, request: Request):
+    readings = [{"metric": r.metric, "value": r.value, "ts": r.ts} for r in body.readings]
+    return call(service.ingest, body.subject, readings, body.source, request.app.state.engine)
 
 
 @api.get("/history", tags=["vitals"], summary="Readings of one metric (all of them unless filtered)")
@@ -150,6 +158,16 @@ def limits():
     return call(service.limits)
 
 
+@api.get("/precautions", tags=["advice"], summary="The full safety-precautions library")
+def precautions():
+    return call(service.precautions)
+
+
+@api.get("/advice", tags=["advice"], summary="Safety precautions for everything currently flagged for a person")
+def advice(subject: str = subj()):
+    return call(service.advice_for_subject, subject)
+
+
 @api.get("/export.csv", tags=["export"])
 def export_csv(subject: str = subj()):
     gen = call(service.export_csv, subject)
@@ -163,9 +181,26 @@ def export_csv(subject: str = subj()):
 
 app.include_router(api)
 
+
+@app.get("/guide", include_in_schema=False, response_class=HTMLResponse)
+def guide_page():
+    """The full crew medical guide as a plain offline page (no JavaScript, nothing fetched from the internet)."""
+    return HTMLResponse(guide.render_guide(advice_lib.library()))
+
+
+@app.get("/help", include_in_schema=False, response_class=HTMLResponse)
+def help_page():
+    """Offline API reference (replaces /docs)."""
+    return HTMLResponse(guide.render_help(app.openapi()))
+
+
+@app.get("/camera", include_in_schema=False)
+def camera_page():
+    """Camera heart-rate / breathing monitor. Served from here so it can call /api on the same origin.
+    Phones only allow the camera over https:// (see make_cert.sh) or on localhost."""
+    return FileResponse(os.path.join(config.BASE_DIR, "static", "camera.html"), media_type="text/html")
+
+
 if __name__ == "__main__":
-    # One process only: the sampler owns the live sensor loop, so running
-    # multiple workers would record every reading several times.
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)-7s %(name)s  %(message)s")
-    uvicorn.run(app, host=config.HOST, port=config.PORT, log_level="info")
+    tls = {"ssl_certfile": config.SSL_CERT, "ssl_keyfile": config.SSL_KEY} if config.SSL_CERT and config.SSL_KEY else {}
+    uvicorn.run(app, host=config.HOST, port=config.PORT, **tls)
