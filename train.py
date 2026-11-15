@@ -33,20 +33,15 @@ def _stats(values, floor):
 
 
 def train(db_path: str, out_path: str) -> dict:
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"database not found: {db_path}")
     c = sqlite3.connect(db_path)
     c.row_factory = sqlite3.Row
-    try:
-        metrics = {r["name"]: r for r in c.execute("SELECT * FROM metrics WHERE kind='vital'")}
-        model = {"trained_at": time.time(), "subjects": {}}
-        rows = c.execute("SELECT subject_id,metric,ts,value FROM readings WHERE level IN ('normal','slightly_abnormal')")
-        data = defaultdict(lambda: defaultdict(list))
-        for r in rows:
-            if r["metric"] in metrics:
-                data[(r["subject_id"], r["metric"])][time.gmtime(r["ts"]).tm_hour].append(r["value"])
-    finally:
-        c.close()
+    metrics = {r["name"]: r for r in c.execute("SELECT * FROM metrics WHERE kind='vital'")}
+    model = {"trained_at": time.time(), "subjects": {}}
+    rows = c.execute("SELECT subject_id,metric,ts,value FROM readings WHERE level IN ('normal','slightly_abnormal')")
+    data = defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        if r["metric"] in metrics:
+            data[(r["subject_id"], r["metric"])][time.gmtime(r["ts"]).tm_hour].append(r["value"])
     for (sid, metric), by_hour in data.items():
         m = metrics[metric]
         lo, hi = m["normal_lo"], m["normal_hi"]
@@ -58,8 +53,6 @@ def train(db_path: str, out_path: str) -> dict:
             if len(vs) >= MIN_PER_HOUR:
                 entry["hours"][str(h)] = _stats(vs, floor)
         model["subjects"].setdefault(sid, {})[metric] = entry
-    out_dir = os.path.dirname(os.path.abspath(out_path))
-    os.makedirs(out_dir, exist_ok=True)
     tmp = out_path + ".tmp"
     with open(tmp, "w") as f:
         json.dump(model, f, indent=1)

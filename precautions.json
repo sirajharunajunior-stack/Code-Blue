@@ -1,0 +1,298 @@
+{
+  "disclaimer": "General safety guidance for crewed spaceflight. Not a diagnosis and not a substitute for the crew medical officer, the mission control flight surgeon or your mission's own medical procedures, which take priority. It runs fully offline, so it can be used during communication delays and blackouts.",
+  "check_first": [
+    "Check the sensor: re-seat or warm it, stay still, and take a second reading 1-2 minutes later. One odd reading is often a sensor or movement artefact.",
+    "Ask how the person feels. Symptoms matter more than numbers: if they feel unwell, act on that.",
+    "Exercise, heat, caffeine and stress raise some readings temporarily. Rest 10-15 minutes and retake, unless the reading is critical or there are symptoms."
+  ],
+  "emergency_signs": [
+    "Chest pain or pressure",
+    "Severe trouble breathing",
+    "Blue or grey lips or face",
+    "Fainting or cannot be woken",
+    "New confusion, slurred speech, or weakness or numbness on one side",
+    "Seizure",
+    "Sudden severe headache"
+  ],
+  "general": {
+    "slightly_abnormal": {
+      "title": "Slightly abnormal: monitor and recheck",
+      "steps": [
+        "Rest and recheck in about 15 minutes.",
+        "Note what the person was doing, eating, drinking, and how they slept.",
+        "Compare with that person's usual values.",
+        "If the reading stays outside the normal range over several checks, treat it as 'needs check-up'."
+      ]
+    },
+    "needs_checkup": {
+      "title": "Needs check-up: schedule a medical review",
+      "steps": [
+        "Tell the crew medical officer today and share the readings and when they started. Send the details to the mission control flight surgeon when a link is available.",
+        "Pause strenuous activity and non-essential duties until reviewed.",
+        "Recheck every 15 minutes and keep a log.",
+        "Do not leave the person alone if they have symptoms.",
+        "Follow the condition-specific steps below."
+      ]
+    },
+    "critical": {
+      "title": "Critical: immediate medical attention",
+      "steps": [
+        "Treat as a medical emergency: alert the crew medical officer and the rest of the crew now. Contact the mission control flight surgeon as soon as a link is available. Delays and blackouts are normal, so do not wait for a reply before acting.",
+        "Stay with the person, keep them calm, and secure them with a restraint so they cannot drift into equipment.",
+        "Get the on-board medical kit, oxygen and defibrillator (AED) ready.",
+        "Follow the condition-specific steps below while help is coming.",
+        "If several vitals are flagged at once, treat it as more serious.",
+        "Give medicines only if medical staff direct it."
+      ]
+    }
+  },
+  "conditions": {
+    "fast_heart_rate": {
+      "name": "Fast heart rate (tachycardia)",
+      "metrics": [["heart_rate", "high"]],
+      "indicates": "Can be caused by exertion, stress, fever, dehydration, caffeine, pain, low oxygen or a heart-rhythm problem.",
+      "slightly_abnormal": [
+        "Stop and rest, secured in a comfortable position; recheck after 10-15 minutes.",
+        "Breathe slowly: in for 4 seconds, out for 6.",
+        "Sip water and avoid caffeine and other stimulants."
+      ],
+      "needs_checkup": [
+        "Rest, secured in a comfortable position, and avoid exertion until reviewed.",
+        "Check temperature, SpO2 and breathing rate. A fast pulse with fever, low oxygen or fast breathing is more serious.",
+        "Check for dehydration, pain or anxiety, and drink fluids.",
+        "Report to the medical officer with the readings."
+      ],
+      "critical": [
+        "Stop all activity, secure the person in a comfortable position, and call the crew medical officer now.",
+        "Loosen tight clothing and keep the person calm.",
+        "Monitor pulse, SpO2 and breathing continuously and report any change.",
+        "If they faint, become unresponsive or are not breathing normally, start CPR using the on-board microgravity procedure and use the AED."
+      ],
+      "seek_urgent_help_if": ["Chest pain or pressure", "Fainting or near-fainting", "Severe shortness of breath", "A very irregular pulse"]
+    },
+    "slow_heart_rate": {
+      "name": "Slow heart rate (bradycardia)",
+      "metrics": [["heart_rate", "low"]],
+      "indicates": "Can be normal in very fit people, but may cause dizziness or fainting. Can also come from medication effects, low body temperature or a heart-rhythm problem.",
+      "slightly_abnormal": [
+        "Compare with the person's usual resting rate; fit people often run low.",
+        "Move slowly and avoid sudden head movements.",
+        "Recheck in 15 minutes."
+      ],
+      "needs_checkup": [
+        "Rest and avoid safety-critical tasks (EVA, robotics, docking) until reviewed.",
+        "Check for dizziness, unusual tiredness or fainting, and check body temperature (cold can slow the pulse).",
+        "Report to the medical officer and mention any medication."
+      ],
+      "critical": [
+        "Secure the person in a comfortable position if dizzy or faint, and call the crew medical officer now.",
+        "Do not leave the person alone or let them work or move about unsupervised.",
+        "Monitor pulse and breathing continuously.",
+        "If unresponsive or not breathing normally, start CPR using the on-board microgravity procedure and use the AED."
+      ],
+      "seek_urgent_help_if": ["Fainting", "Chest pain", "Confusion", "Severe weakness"]
+    },
+    "low_blood_oxygen": {
+      "name": "Low blood oxygen (hypoxemia)",
+      "metrics": [["spo2", "low"]],
+      "indicates": "Can come from breathing or lung problems, poor circulation to the sensor finger, or an air-quality problem such as low oxygen or high CO2 in the cabin.",
+      "slightly_abnormal": [
+        "Warm the hands, keep the sensor still and remove nail polish, then retake.",
+        "Rest and take slow, deep breaths.",
+        "Check the cabin oxygen and CO2 readings."
+      ],
+      "needs_checkup": [
+        "Rest, breathe slowly and avoid exertion.",
+        "Check cabin oxygen, CO2 and ventilation; improve air circulation or move to better air.",
+        "Check breathing rate and temperature for signs of infection.",
+        "Report to the medical officer and recheck every 5-10 minutes."
+      ],
+      "critical": [
+        "Call the crew medical officer immediately.",
+        "Give supplemental oxygen if available and you are trained to use it.",
+        "Secure the person, loosen clothing and keep them calm.",
+        "If the cabin air may be the cause, treat it as an atmosphere emergency (see high cabin CO2) and move everyone to safe air.",
+        "Monitor continuously; if not breathing normally, start rescue breathing or CPR using the on-board procedure."
+      ],
+      "seek_urgent_help_if": ["Blue or grey lips", "Severe breathlessness", "Confusion", "Drowsiness, hard to wake"]
+    },
+    "fever": {
+      "name": "Fever (high body temperature)",
+      "metrics": [["body_temp", "high"]],
+      "indicates": "Often an infection. Heat exposure or heavy exertion can also raise temperature.",
+      "slightly_abnormal": [
+        "Rest, drink fluids and wear lighter clothing.",
+        "Recheck in 15-30 minutes (readings run high after exercise or in a hot area).",
+        "Note symptoms such as cough, sore throat, body aches or diarrhoea."
+      ],
+      "needs_checkup": [
+        "Rest in a cool area, drink water or an electrolyte drink, and wear light clothing.",
+        "Cool gently with a damp cloth on the forehead, neck and armpits.",
+        "Limit contact with others, wear a mask and wash hands often. Infection spreads quickly in a closed habitat: separate sleeping and work areas if possible and clean shared surfaces.",
+        "Report to the medical officer. Take fever-reducing medicine only if they direct it."
+      ],
+      "critical": [
+        "Call the crew medical officer now.",
+        "Keep the person cool and hydrated if they can drink; cool gently as above and avoid ice-cold baths.",
+        "Isolate from others, use a mask and report possible infection to crew medical.",
+        "Monitor temperature, pulse, breathing and alertness every 5-10 minutes."
+      ],
+      "seek_urgent_help_if": ["Confusion or unusual drowsiness", "Stiff neck", "Seizure", "A rash that does not fade when pressed", "Trouble breathing", "Fever that keeps rising"]
+    },
+    "low_body_temperature": {
+      "name": "Low body temperature (hypothermia range below 35 C)",
+      "metrics": [["body_temp", "low"]],
+      "indicates": "Can come from a cold or wet environment, a cabin temperature-control fault, illness, or a faulty sensor.",
+      "slightly_abnormal": [
+        "Add layers or a blanket and have a warm drink if alert.",
+        "Check the cabin temperature and sensor placement, then recheck in 15 minutes."
+      ],
+      "needs_checkup": [
+        "Move to a warmer area, remove wet clothing and wrap in dry layers or blankets, including head and neck.",
+        "Give warm (not hot) sweet drinks if fully alert; no alcohol or caffeine.",
+        "Check the cabin temperature controls for a fault.",
+        "Report to the medical officer and recheck every 10-15 minutes."
+      ],
+      "critical": [
+        "Call the crew medical officer now.",
+        "Handle gently, secure the person and insulate them from the cold, covering the whole body including the head.",
+        "Warm the centre of the body (chest, neck, armpits, groin) with blankets or warm packs wrapped in cloth. Do not use direct heat or hot water and do not rub the arms and legs.",
+        "Monitor breathing and pulse; if not breathing normally, start CPR using the on-board procedure."
+      ],
+      "seek_urgent_help_if": ["Shivering stops while confusion grows", "Drowsiness", "Slurred speech", "Very slow breathing"]
+    },
+    "rapid_breathing": {
+      "name": "Rapid breathing (tachypnea)",
+      "metrics": [["resp_rate", "high"]],
+      "indicates": "Can come from a lung infection, low oxygen, high CO2 in the air, anxiety, fever or exertion.",
+      "slightly_abnormal": [
+        "Rest and breathe in through the nose for 4 seconds and out through pursed lips for 6.",
+        "Recheck after 10-15 minutes."
+      ],
+      "needs_checkup": [
+        "Rest and avoid exertion.",
+        "Check SpO2, temperature and the cabin CO2 and oxygen levels.",
+        "Improve ventilation, or move to better air if the cabin readings are off.",
+        "Report to the medical officer."
+      ],
+      "critical": [
+        "Call the crew medical officer now.",
+        "Secure the person, loosen clothing and keep them calm.",
+        "Give oxygen if available and trained, and check the cabin atmosphere.",
+        "Monitor SpO2 and breathing continuously."
+      ],
+      "seek_urgent_help_if": ["Cannot speak full sentences", "Blue lips", "Chest pain", "Confusion", "Using neck and chest muscles to breathe"]
+    },
+    "high_blood_pressure": {
+      "name": "High blood pressure (hypertension)",
+      "metrics": [["bp_systolic", "high"], ["bp_diastolic", "high"]],
+      "indicates": "Can be temporary after exertion, stress, caffeine, salt or pain. Persistently high or very high readings strain the heart, brain and kidneys.",
+      "slightly_abnormal": [
+        "Rest quietly for 5 minutes with your arm supported at heart level, then retake.",
+        "Avoid caffeine and salty food, and manage stress."
+      ],
+      "needs_checkup": [
+        "Rest and retake twice, 5 minutes apart, and average the readings.",
+        "Cut caffeine and salt, drink water and avoid heavy exertion until reviewed.",
+        "Report to the medical officer; log readings with times and mention any medicines taken."
+      ],
+      "critical": [
+        "Alert the crew medical officer promptly and rest, secured and calm.",
+        "Do not take extra or someone else's blood-pressure medicine unless a clinician directs it.",
+        "Retake after 5 minutes and keep a record to share.",
+        "If any of the warning signs below appear, treat it as an emergency."
+      ],
+      "seek_urgent_help_if": ["Severe headache", "Chest pain", "Vision changes", "Weakness or numbness on one side", "Confusion", "Shortness of breath"]
+    },
+    "high_cabin_co2": {
+      "name": "High cabin CO2 (hypercapnia risk)",
+      "metrics": [["cabin_co2", "high"]],
+      "indicates": "Usually a CO2 scrubber or ventilation fault, or crowding. Early signs are headache, drowsiness, fast breathing and dizziness.",
+      "slightly_abnormal": [
+        "Check the CO2 scrubber and ventilation status and airflow.",
+        "Reduce exertion to cut CO2 production, then recheck in 15 minutes."
+      ],
+      "needs_checkup": [
+        "Increase ventilation and air mixing; check, restart or replace the CO2 removal unit and filters per procedure.",
+        "Move the crew to the area with the lowest CO2 and limit exercise.",
+        "Ask everyone about headache, drowsiness, dizziness and shortness of breath.",
+        "Alert the station engineer or mission control and remeasure every 15 minutes."
+      ],
+      "critical": [
+        "Declare an atmosphere emergency per your vehicle or station procedure and alert everyone.",
+        "Use emergency breathing equipment or oxygen as the procedure says, and move to a clean-air module or area.",
+        "Treat anyone with symptoms as a medical emergency and give oxygen if trained.",
+        "Do not return until CO2 is back in the normal range and the fault is fixed."
+      ],
+      "seek_urgent_help_if": ["Headache with confusion", "Cannot be woken", "Severe breathlessness", "Vomiting", "Fainting"]
+    },
+    "sleep_loss": {
+      "name": "Not enough sleep",
+      "metrics": [["sleep_hours", "low"]],
+      "indicates": "Poor sleep slows reactions, weakens judgement and mood, and lowers immunity. Causes include schedule, noise, light, stress and discomfort.",
+      "slightly_abnormal": [
+        "Protect the next sleep period: dim lights, cut noise and keep a fixed schedule.",
+        "Avoid caffeine in the 6 hours before bed and bright screens late.",
+        "Take extra care with complex tasks today."
+      ],
+      "needs_checkup": [
+        "Schedule recovery sleep and shorten or move non-essential duties.",
+        "Use a buddy double-check for safety-critical tasks.",
+        "Review the sleep environment: noise, light, temperature and sleep-restraint comfort.",
+        "Report to the medical officer if it continues for 2 or more nights. No sleep medicine unless prescribed."
+      ],
+      "critical": [
+        "Stand down from safety-critical work (EVA, docking, robotics) until rested.",
+        "Arrange protected recovery sleep and report to the commander and medical officer.",
+        "Look for causes: illness, pain, stress, cabin air (CO2) and the schedule.",
+        "Watch for microsleeps, confusion and mood changes."
+      ],
+      "seek_urgent_help_if": ["Hallucinations", "Severe confusion", "Falling asleep during tasks"]
+    },
+    "low_exercise": {
+      "name": "Not enough exercise (deconditioning risk)",
+      "metrics": [["exercise_hours", "low"]],
+      "indicates": "On long missions, skipping exercise speeds up loss of muscle, bone and heart fitness.",
+      "slightly_abnormal": [
+        "Do the full planned session today, combining resistance and aerobic training.",
+        "If time or equipment is the problem, split it into shorter sessions."
+      ],
+      "needs_checkup": [
+        "Resume the exercise plan today at a lower intensity if you have had a break.",
+        "Check that the equipment works and report faults.",
+        "Report pain, injury or illness that is stopping exercise.",
+        "Tell the medical officer if exercise is missed on 2 or more days."
+      ],
+      "critical": [
+        "Arrange a flight surgeon or medical review to find out why exercise stopped: illness, injury, low mood, equipment or workload.",
+        "Restart gradually with a supervised plan and avoid sudden heavy loading after days of none.",
+        "Make exercise a protected part of the schedule.",
+        "Watch for back or leg pain, weakness, dizziness on standing, and low mood."
+      ],
+      "seek_urgent_help_if": ["Sharp pain or a suspected injury", "Dizziness or fainting when standing"]
+    },
+    "radiation_exposure": {
+      "name": "Elevated radiation dose",
+      "metrics": [["radiation", "high"]],
+      "indicates": "Short intense bursts (solar particle events) can cause radiation sickness at high doses. Long-term cumulative dose raises cancer risk and counts toward the career limit.",
+      "slightly_abnormal": [
+        "Check the dosimeter is working and worn correctly.",
+        "Limit time in the least-shielded areas and sleep in the best-shielded spot.",
+        "Log the dose and watch the running total against the career limit."
+      ],
+      "needs_checkup": [
+        "Move to the most shielded area and cut time in exposed areas.",
+        "Postpone EVAs and non-essential tasks in less-shielded areas.",
+        "Check space-weather and radiation alerts for solar activity.",
+        "Tell the medical officer and mission control, and log the dose and time."
+      ],
+      "critical": [
+        "Take shelter immediately in the best-shielded area and stay until the radiation monitors or mission control give the all-clear.",
+        "Log the time, duration and dose for every crew member.",
+        "Tell medical staff at once and watch for nausea, vomiting, fatigue, headache and skin redness.",
+        "After the event, have each person medically assessed; the dose counts toward the career limit."
+      ],
+      "seek_urgent_help_if": ["Repeated vomiting", "Severe fatigue or weakness", "Skin burns or redness", "Unusual bleeding or bruising"]
+    }
+  }
+}
