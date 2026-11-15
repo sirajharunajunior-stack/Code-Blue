@@ -1,7 +1,6 @@
 """Tests for POST /api/readings (camera / device ingest) at the service layer. No FastAPI needed.
 Run:  python tests/test_ingest.py     (or: pytest -q tests/test_ingest.py)"""
 import os
-import shutil
 import sys
 import tempfile
 import time
@@ -11,7 +10,6 @@ sys.path.insert(0, ROOT)
 _tmp = tempfile.mkdtemp()
 os.environ["HM_DB"] = os.path.join(_tmp, "test.db")
 os.environ["HM_MODEL"] = os.path.join(_tmp, "model.json")
-shutil.copy(os.path.join(ROOT, "health.db"), os.environ["HM_DB"])
 
 import alerts  # noqa: E402
 import config  # noqa: E402
@@ -75,6 +73,14 @@ def test_invalid_input_is_rejected_and_nothing_is_stored():
     assert bad(lambda: service.ingest("cam-1", [{"metric": "radiation", "value": 1}], "camera", quiet()))      # daily metric
     assert bad(lambda: service.ingest("cam-1", [{"metric": "nope", "value": 1}], "camera", quiet()))
     assert bad(lambda: service.ingest("cam-1", [{"metric": "heart_rate", "value": 70, "ts": time.time() - 10 * 86400}], "camera", quiet()))
+    assert bad(lambda: service.ingest("cam-1", [{"metric": "heart_rate", "value": 70, "ts": float("nan")}], "camera", quiet()))
+    assert bad(lambda: service.ingest("cam-1", [{"metric": "heart_rate", "value": 70, "ts": float("inf")}], "camera", quiet()))
+    assert bad(lambda: service.ingest("cam-1", [{"metric": "heart_rate", "value": 70, "ts": "not-a-time"}], "camera", quiet()))
+    duplicate_ts = time.time()
+    assert bad(lambda: service.ingest("cam-1", [
+        {"metric": "heart_rate", "value": 70, "ts": duplicate_ts},
+        {"metric": "heart_rate", "value": 72, "ts": duplicate_ts},
+    ], "camera", quiet()))
     assert bad(lambda: service.ingest("cam-1", [], "camera", quiet()))
     assert bad(lambda: service.ingest("ZZ", [{"metric": "heart_rate", "value": 70}], "camera", quiet()), service.NotFound)
 

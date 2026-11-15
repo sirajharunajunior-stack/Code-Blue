@@ -9,16 +9,18 @@ import type {
   HealthLevel,
 } from "@/types";
 
+type StoredResult = AssessmentResult;
+
 const STORAGE_KEY = "astra:assessment-results:v1";
 const EVENT = "astra:assessments-changed";
+let memoryResults: StoredResult[] = [];
+let storageUnavailable = false;
 
 /**
  * Assessment results are kept locally: this build has no write API yet.
  * The shape matches what `POST /api/...` would accept, so swapping in a real
  * endpoint only changes this module.
  */
-type StoredResult = AssessmentResult;
-
 const HEALTH_LEVELS: HealthLevel[] = [
   "normal",
   "slightly_abnormal",
@@ -44,26 +46,37 @@ function isStoredResult(value: unknown): value is StoredResult {
 
 function readAll(): StoredResult[] {
   if (typeof window === "undefined") return [];
+  if (storageUnavailable) return memoryResults;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      memoryResults = [];
+      return memoryResults;
+    }
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed)
+    memoryResults = Array.isArray(parsed)
       ? parsed.filter(isStoredResult).sort((a, b) => b.submittedAt - a.submittedAt)
       : [];
+    return memoryResults;
   } catch {
-    return [];
+    storageUnavailable = true;
+    return memoryResults;
   }
 }
 
-function writeAll(results: StoredResult[]) {
+function writeAll(results: StoredResult[]): boolean {
+  memoryResults = results;
+  let persisted = true;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+    storageUnavailable = false;
   } catch {
-    /* Quota or disabled storage: keep the in-memory result and notify listeners. */
+    storageUnavailable = true;
+    persisted = false;
   }
   window.dispatchEvent(new Event(EVENT));
   window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+  return persisted;
 }
 
 /** Highest level any metric-backed answer would be classified as. */
@@ -160,9 +173,9 @@ export function useAssessments(subjectId: string) {
         notes: input.notes,
       };
       const all = readAll();
-      writeAll([result, ...all]);
+      const persisted = writeAll([result, ...all]);
       setResults(readAll().filter((r) => r.subjectId === subjectId));
-      return result;
+      return { result, persisted };
     },
     [subjectId],
   );

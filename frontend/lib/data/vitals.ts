@@ -230,7 +230,12 @@ export function getRadiationSummary(subjectId: string): RadiationSummary {
   const avgDaily = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
   const remaining = Math.max(0, CAREER_LIMIT_MSV - cumulative);
   const sorted = [...doses].sort((a, b) => a - b);
-  const baseline = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
+  const middle = Math.floor(sorted.length / 2);
+  const baseline = sorted.length
+    ? sorted.length % 2
+      ? sorted[middle]
+      : (sorted[middle - 1] + sorted[middle]) / 2
+    : null;
   const last = daily[daily.length - 1];
   const rules = radiationRules();
   const environment = getSubject(subjectId).environment;

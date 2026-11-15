@@ -182,13 +182,15 @@ export function AssessmentRunner({
 
   const handleSubmit = () => {
     const notes = String(values["notes"] ?? "").trim();
-    const stored = submit({ assessmentId: assessment.id, answers: allAnswers, notes });
+    const { result: stored, persisted } = submit({ assessmentId: assessment.id, answers: allAnswers, notes });
     setResult(stored);
     setPhase("done");
     push({
-      title: "Assessment submitted",
-      description: `${assessment.shortName} · ${LEVELS[stored.level].label}. Saved to this crew member's record.`,
-      tone: stored.level === "normal" ? "success" : "warning",
+      title: persisted ? "Assessment submitted" : "Assessment kept for this session",
+      description: persisted
+        ? `${assessment.shortName} · ${LEVELS[stored.level].label}. Saved to this crew member's record.`
+        : `${assessment.shortName} · ${LEVELS[stored.level].label}. Browser storage is unavailable; this result will be lost when the page closes.`,
+      tone: persisted && stored.level === "normal" ? "success" : "warning",
     });
   };
 

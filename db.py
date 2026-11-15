@@ -5,6 +5,7 @@ threads and the sampler thread at the same time.
 """
 import contextlib
 import json
+import os
 import sqlite3
 import time
 from typing import Dict, List, Optional
@@ -13,6 +14,96 @@ import config
 import levels
 
 REQUIRED = ("subjects", "metrics", "readings", "daily", "levels", "level_ranges", "alerts", "meta")
+DEMO_DATA_DIR = os.path.join(config.BASE_DIR, "frontend", "lib", "data")
+
+
+def _create_schema(c):
+    c.executescript("""
+        CREATE TABLE subjects(
+            id TEXT PRIMARY KEY, name TEXT, baseline TEXT,
+            environment TEXT DEFAULT 'free_space');
+        CREATE TABLE metrics(
+            name TEXT PRIMARY KEY, unit TEXT, kind TEXT,
+            normal_lo REAL, normal_hi REAL, warn_low REAL, warn_high REAL,
+            crit_low REAL, crit_high REAL, extra TEXT, note TEXT);
+        CREATE TABLE readings(
+            subject_id TEXT, metric TEXT, ts REAL, value REAL, status TEXT, level TEXT,
+            PRIMARY KEY(subject_id, metric, ts)) WITHOUT ROWID;
+        CREATE TABLE daily(
+            subject_id TEXT, ts REAL, day INTEGER,
+            sleep_hours REAL, exercise_hours REAL, radiation REAL, cumulative_radiation REAL,
+            sleep_status TEXT, exercise_status TEXT, radiation_status TEXT,
+            sleep_level TEXT, exercise_level TEXT, radiation_level TEXT,
+            PRIMARY KEY(subject_id, ts)) WITHOUT ROWID;
+        CREATE TABLE levels(
+            code INTEGER PRIMARY KEY, name TEXT, label TEXT, meaning TEXT, action TEXT, color TEXT);
+        CREATE TABLE level_ranges(
+            metric TEXT, level TEXT, range_text TEXT, PRIMARY KEY(metric, level));
+        CREATE TABLE alerts(
+            id INTEGER PRIMARY KEY, subject_id TEXT, ts REAL, metric TEXT, value REAL,
+            level TEXT, source TEXT, msg TEXT);
+        CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
+    """)
+
+
+def _seed_demo(c):
+    """Populate a first-run database from the committed, fictional demo snapshot."""
+    try:
+        with open(os.path.join(DEMO_DATA_DIR, "reference.json"), encoding="utf-8") as f:
+            reference = json.load(f)
+        with open(os.path.join(DEMO_DATA_DIR, "readings.json"), encoding="utf-8") as f:
+            readings = json.load(f)
+        with open(os.path.join(DEMO_DATA_DIR, "daily.json"), encoding="utf-8") as f:
+            daily = json.load(f)
+        with open(os.path.join(DEMO_DATA_DIR, "alerts.json"), encoding="utf-8") as f:
+            alerts = json.load(f)
+    except (OSError, ValueError) as e:
+        raise RuntimeError(
+            f"Cannot initialize {config.DB_PATH}: demo data snapshot is unavailable or invalid "
+            f"under {DEMO_DATA_DIR}: {e}") from e
+
+    c.executemany(
+        "INSERT INTO metrics VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+        [(m["name"], m["unit"], m["kind"], m["normal_lo"], m["normal_hi"],
+          m["warn_low"], m["warn_high"], m["crit_low"], m["crit_high"], m["extra"], m["note"])
+         for m in reference["metrics"]])
+    c.executemany(
+        "INSERT INTO levels VALUES(?,?,?,?,?,?)",
+        [(v["code"], v["name"], v["label"], v["meaning"], v["action"], v["color"])
+         for v in reference["levels"]])
+    c.executemany(
+        "INSERT INTO level_ranges VALUES(?,?,?)",
+        [(metric, level, text) for metric, ranges in reference["ranges"].items()
+         for level, text in ranges.items()])
+    c.executemany(
+        "INSERT INTO meta VALUES(?,?)",
+        [(key, json.dumps(value)) for key, value in reference["meta"].items()])
+    c.executemany(
+        "INSERT INTO subjects(id,name,baseline,environment) VALUES(?,?,?,?)",
+        [(s["id"], s["name"], json.dumps(s.get("baseline", {})), s["environment"])
+         for s in reference["subjects"]])
+
+    for sid, metrics_by_name in readings.items():
+        for metric, points in metrics_by_name.items():
+            c.executemany(
+                "INSERT INTO readings VALUES(?,?,?,?,?,?)",
+                [(sid, metric, ts, value, levels.STATUS[level], level)
+                 for ts, value, level in points])
+    for sid, days in daily.items():
+        c.executemany(
+            "INSERT INTO daily VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [(sid, row["ts"], row["day"], row["sleep_hours"], row["exercise_hours"],
+              row["radiation"], row["cumulative_radiation"],
+              levels.STATUS[row["levels"]["sleep_hours"]],
+              levels.STATUS[row["levels"]["exercise_hours"]],
+              levels.STATUS[row["levels"]["radiation"]],
+              row["levels"]["sleep_hours"], row["levels"]["exercise_hours"],
+              row["levels"]["radiation"])
+             for row in days])
+    c.executemany(
+        "INSERT INTO alerts(subject_id,ts,metric,value,level,source,msg) VALUES(?,?,?,?,?,?,?)",
+        [(a["subject"], a["ts"], a["metric"], a["value"], a["level"], a["source"], a["msg"])
+         for a in alerts])
 
 
 @contextlib.contextmanager
@@ -28,14 +119,18 @@ def conn():
 
 
 def init():
-    """Check the database is the expected one, switch on WAL, add the live subject."""
+    """Initialize a new demo database or validate an existing one, then add the live subject."""
     with conn() as c:
         have = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not have:
+            _create_schema(c)
+            _seed_demo(c)
+            have = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         missing = [t for t in REQUIRED if t not in have]
         if missing:
             raise RuntimeError(
                 f"{config.DB_PATH} is missing tables {missing}. "
-                "Put the provided health.db next to main.py or set HM_DB=/path/to/health.db")
+                "Use a valid health database or remove the incomplete file to initialize the demo database.")
         c.execute("PRAGMA journal_mode=WAL")
         c.execute("CREATE INDEX IF NOT EXISTS idx_readings_ts ON readings(ts)")
         c.execute("INSERT OR IGNORE INTO subjects(id,name,baseline,environment) VALUES(?,?,?,?)",

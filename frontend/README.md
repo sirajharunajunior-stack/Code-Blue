@@ -103,6 +103,16 @@ so moving the data source does not change how values are graded. Assessment
 submission is local-only today; `submit()` in `lib/assessment-store.ts` is the
 single place to add a write endpoint.
 
+## Body figure attribution
+
+The front-view figure in the Digital Human explorer is a crop of
+[“Female-male front-back 3d-shaded human illustration.svg” by Goran tek-en](https://commons.wikimedia.org/wiki/File:Female-male_front-back_3d-shaded_human_illustration.svg),
+based on [“Human Body.jpg” by Mikael Häggström](https://commons.wikimedia.org/wiki/File:Human_Body.jpg),
+with anatomical input from Rob Hurt. The source is licensed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). This project
+crops the front-view figure and adds interactive educational overlays; the
+adaptation is shared under the same license.
+
 ## Layout
 
 ```

@@ -225,9 +225,67 @@
   }
 }
 
+@keyframes anatomy-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.004);
+  }
+}
+
+@keyframes anatomy-lung-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045, 1.025);
+  }
+}
+
+@keyframes anatomy-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  8% {
+    transform: scale(1.1);
+  }
+  16%,
+  24% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.06);
+  }
+  38% {
+    transform: scale(1);
+  }
+}
+
 .animate-pulse-dot {
   animation: astra-pulse 2.4s ease-in-out infinite;
   /* Scale about the dot itself; the default SVG origin is the viewBox corner. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-anatomy-breathe {
+  animation: anatomy-breathe 5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-anatomy-lungs {
+  animation: anatomy-lung-breathe 5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-anatomy-heart {
+  animation: anatomy-heartbeat 1.2s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: center;
 }

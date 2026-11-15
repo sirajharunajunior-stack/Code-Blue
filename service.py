@@ -2,6 +2,7 @@
 main.py only translates these functions into HTTP."""
 import csv
 import io
+import math
 import statistics
 import time
 from datetime import datetime, timezone
@@ -264,7 +265,7 @@ def ingest(sid: str, readings: List[dict], source: str = "api", engine=None) -> 
     _require_subject(sid)
     if not readings:
         raise BadRequest("no readings supplied")
-    specs, now, clean = db.metrics(), time.time(), []
+    specs, now, clean, seen = db.metrics(), time.time(), [], set()
     for r in readings:
         m, spec = r.get("metric"), specs.get(r.get("metric"))
         if not spec or spec["kind"] != "vital":
@@ -277,9 +278,18 @@ def ingest(sid: str, readings: List[dict], source: str = "api", engine=None) -> 
         if not (lo <= v <= hi):                                  # also rejects NaN
             raise BadRequest(f"{m} value {v} is outside the plausible range {lo}-{hi}; not stored")
         ts = r.get("ts")
-        ts = now if ts is None else float(ts)
+        try:
+            ts = now if ts is None else float(ts)
+        except (TypeError, ValueError):
+            raise BadRequest(f"{m}: timestamp must be a finite number")
+        if not math.isfinite(ts):
+            raise BadRequest(f"{m}: timestamp must be a finite number")
         if abs(ts - now) > 86400:
             raise BadRequest(f"{m}: timestamp is more than a day away from now")
+        key = (m, ts)
+        if key in seen:
+            raise BadRequest(f"{m}: duplicate timestamp in this batch")
+        seen.add(key)
         clean.append((m, v, ts))
     if engine is None:
         _default_engine = _default_engine or alerts_mod.AlertEngine()

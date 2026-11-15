@@ -1,9 +1,8 @@
 """Tests for the logic behind the API. No FastAPI needed.
 Run:  python tests/test_core.py     (or: pytest -q tests/test_core.py)
-Uses a temporary copy of health.db, so your real database is never touched."""
+Initializes an isolated database from the committed demo snapshot."""
 import json
 import os
-import shutil
 import sys
 import tempfile
 
@@ -13,13 +12,13 @@ sys.path.insert(0, ROOT)
 _tmp = tempfile.mkdtemp()
 os.environ["HM_DB"] = os.path.join(_tmp, "test.db")
 os.environ["HM_MODEL"] = os.path.join(_tmp, "model.json")
-shutil.copy(os.path.join(ROOT, "health.db"), os.environ["HM_DB"])
 
 import alerts as alerts_mod  # noqa: E402
 import config  # noqa: E402
 import db  # noqa: E402
 import levels  # noqa: E402
 import sampler as sampler_mod  # noqa: E402
+import sensors as sensors_mod  # noqa: E402
 import service  # noqa: E402
 import train  # noqa: E402
 
@@ -40,7 +39,7 @@ def test_every_stored_level_is_reproduced():
     with db.conn() as c:
         # astronaut data only: a running server also stores live readings under 'local'
         rows = c.execute("SELECT metric,value,status,level FROM readings WHERE subject_id IN ('A1','A2','A3')").fetchall()
-    assert len(rows) == 14112
+    assert len(rows) == 3528
     for r in rows:
         lv = levels.classify(m[r["metric"]], r["value"])
         assert (lv, levels.STATUS[lv]) == (r["level"], r["status"])
@@ -59,8 +58,8 @@ def test_subjects_latest_history():
     j = service.latest("A1")
     assert len(j["latest"]) == 7 and j["overall_level"] in LV
     h = service.history("A1", "heart_rate")
-    assert len(h) == 672 and {"ts", "value", "status", "level"} <= set(h[0])
-    assert len(service.history("A1", "heart_rate", minutes=60)) == 5
+    assert len(h) == 168 and {"ts", "value", "status", "level"} <= set(h[0])
+    assert service.history("A1", "heart_rate", minutes=60)
     assert len(service.history("A1", "heart_rate", limit=10)) == 10
     assert raises(service.NotFound, service.history, "A1", "nope")
     assert raises(service.NotFound, service.latest, "ZZ")
@@ -95,7 +94,7 @@ def test_daily_alerts_export():
     assert len(service.daily("A3")) == 7
     assert len(service.alerts("A2", 500)) >= 30
     lines = "".join(service.export_csv("A1")).splitlines()
-    assert lines[0] == "timestamp,metric,value,status" and len(lines) == 4705
+    assert lines[0] == "timestamp,metric,value,status" and len(lines) == 1177
     assert raises(service.NotFound, lambda: next(service.export_csv("ZZ")))
 
 
@@ -127,6 +126,66 @@ def test_cooldown_and_broken_notifier():
     config.ALERT_COOLDOWN_S = 0
 
 
+def test_alert_persistence_failure_does_not_start_cooldown():
+    eng = alerts_mod.AlertEngine(notifiers=[], baseline=alerts_mod.Baseline("/nonexistent"))
+    original = db.add_alert
+    attempts = 0
+
+    def fail_once(*args, **kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise OSError("database unavailable")
+        return original(*args, **kwargs)
+
+    db.add_alert = fail_once
+    try:
+        assert raises(OSError, eng.check, "T3", "spo2", 85, "critical", 6000)
+        assert len(eng.check("T3", "spo2", 85, "critical", 6001)) == 1
+    finally:
+        db.add_alert = original
+
+
+def test_concurrent_alert_checks_respect_one_cooldown():
+    from concurrent.futures import ThreadPoolExecutor
+
+    previous_cooldown = config.ALERT_COOLDOWN_S
+    config.ALERT_COOLDOWN_S = 300
+    try:
+        eng = alerts_mod.AlertEngine(notifiers=[], baseline=alerts_mod.Baseline("/nonexistent"))
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(
+                lambda _: eng.check("T4", "spo2", 85, "critical", 7000),
+                range(8)))
+        assert sum(len(result) for result in results) == 1
+        assert len([a for a in db.alerts("T4", 100) if a["level"] == "critical"]) == 1
+    finally:
+        config.ALERT_COOLDOWN_S = previous_cooldown
+
+
+def test_disabled_simulation_does_not_report_cabin_sensor():
+    previous_simulation = config.SIMULATE
+    try:
+        config.SIMULATE = False
+        assert raises(NotImplementedError, sensors_mod.CabinSensor)
+    finally:
+        config.SIMULATE = previous_simulation
+
+
+def test_new_database_bootstraps_and_reinitializes():
+    original_path = config.DB_PATH
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            config.DB_PATH = os.path.join(directory, "fresh.db")
+            db.init()
+            first = len(db.history("A1", "heart_rate"))
+            db.init()
+            assert first == 168 and len(db.history("A1", "heart_rate")) == first
+            assert {"A1", "A2", "A3", config.LOCAL_SUBJECT} <= {s["id"] for s in db.subjects()}
+    finally:
+        config.DB_PATH = original_path
+
+
 def test_train_and_baseline_drift():
     mdl = train.train(config.DB_PATH, config.MODEL_PATH)
     assert {"A1", "A2", "A3"} <= set(mdl["subjects"]) and "heart_rate" in mdl["subjects"]["A1"]
@@ -151,7 +210,7 @@ def test_sampler_writes_live_readings():
     assert {r["metric"] for r in j["latest"]} == {"heart_rate", "spo2", "body_temp", "resp_rate", "cabin_co2"}
     # astronaut data is untouched by live sampling and retention
     db.prune_live()
-    assert len(service.history("A1", "heart_rate")) == 672
+    assert len(service.history("A1", "heart_rate")) == 168
 
 
 if __name__ == "__main__":

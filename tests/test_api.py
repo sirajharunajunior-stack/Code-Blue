@@ -1,7 +1,6 @@
 """Run:  pip install -r requirements-dev.txt && pytest -q
 Uses a temporary copy of health.db, so your real database is never touched."""
 import os
-import shutil
 import sys
 
 import pytest
@@ -12,8 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("db") / "test.db"
-    src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "health.db")
-    shutil.copy(src, tmp)
     os.environ["HM_DB"] = str(tmp)
     os.environ["HM_MODEL"] = str(tmp) + ".model.json"
     from fastapi.testclient import TestClient
@@ -34,7 +31,7 @@ def test_latest_has_level_and_overall(client):
 
 def test_history_and_filters(client):
     h = client.get("/api/history", params={"metric": "heart_rate", "subject": "A1"}).json()
-    assert len(h) == 672 and {"ts", "value", "status", "level"} <= set(h[0])
+    assert len(h) == 168 and {"ts", "value", "status", "level"} <= set(h[0])
     assert client.get("/api/history", params={"metric": "nope", "subject": "A1"}).status_code == 404
     assert client.get("/api/latest", params={"subject": "ZZ"}).status_code == 404
 
@@ -66,11 +63,26 @@ def test_daily_alerts_export(client):
     assert len(client.get("/api/daily", params={"subject": "A3"}).json()) == 7
     assert len(client.get("/api/alerts", params={"subject": "A2", "n": 500}).json()) >= 30
     csv = client.get("/api/export.csv", params={"subject": "A1"}).text.splitlines()
-    assert csv[0] == "timestamp,metric,value,status" and len(csv) == 4705
+    assert csv[0] == "timestamp,metric,value,status" and len(csv) == 1177
 
 
 def test_health_shows_sensors(client):
-    assert client.get("/api/health").json()["sensors"]
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok" and health["sensors"]
+    assert health["sampler_ok"] is True and health["sensors_ok"] is True
+    assert health["sample_age_seconds"] >= 0
+
+
+def test_health_reports_sensor_degradation(client):
+    sensors = client.app.state.sampler.status
+    name = next(iter(sensors))
+    previous = sensors[name]["ok"]
+    try:
+        sensors[name]["ok"] = False
+        health = client.get("/api/health").json()
+        assert health["status"] == "degraded" and health["sensors_ok"] is False
+    finally:
+        sensors[name]["ok"] = previous
 
 
 def test_auth_token(client, monkeypatch):

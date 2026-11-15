@@ -74,11 +74,13 @@ class HeartRateSpO2Sensor(Sensor):
 
 
 class CabinSensor(Sensor):
-    """Cabin air (CO2 %, breathing rate). Simulated; replace with an NDIR CO2 sensor (e.g. SCD30/SCD41)."""
+    """Cabin air (CO2 %, breathing rate). Replace with an NDIR sensor (e.g. SCD30/SCD41)."""
     name = "cabin"
     metrics = ("cabin_co2", "resp_rate")
 
     def setup(self):
+        if not config.SIMULATE:
+            raise NotImplementedError("Cabin CO2 sensor driver not written yet (see sensors.py)")
         self.simulated = True
 
     def read(self):

@@ -118,7 +118,7 @@ export function DigitalHumanScreen() {
             title="Body map"
             corners
             flush
-            action={<span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-dim">Tap a point</span>}
+            action={<span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-dim">Breathing · select a system</span>}
           >
             <div className="relative">
               <div className="mx-auto h-[420px] w-full max-w-[320px] px-2 py-2 sm:h-[480px]">
@@ -133,6 +133,27 @@ export function DigitalHumanScreen() {
                   </span>
                 ))}
               </div>
+              <p className="border-t border-line/60 px-3 py-2 text-center text-[9px] leading-relaxed text-dim">
+                Figure by{" "}
+                <a
+                  href="https://commons.wikimedia.org/wiki/File:Female-male_front-back_3d-shaded_human_illustration.svg"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-mute underline decoration-line underline-offset-2 hover:text-signal"
+                >
+                  Goran tek-en
+                </a>
+                , based on work by Mikael Häggström with anatomical input from Rob Hurt ·{" "}
+                <a
+                  href="https://creativecommons.org/licenses/by-sa/4.0/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-mute underline decoration-line underline-offset-2 hover:text-signal"
+                >
+                  CC BY-SA 4.0
+                </a>
+                . Front-view crop and interactive educational overlays.
+              </p>
             </div>
           </Panel>
         </div>

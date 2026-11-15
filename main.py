@@ -87,8 +87,17 @@ def subj():
 @app.get("/api/health", tags=["status"])
 def health():
     sampler = app.state.sampler
-    return {"status": "ok", "time": service.iso(time.time()), "db": config.DB_PATH,
-            "sensors": sampler.status if sampler else {},
+    sensors = sampler.status if sampler else {}
+    sample_age = (time.time() - sampler.last_sample_ts
+                  if sampler and sampler.last_sample_ts is not None else None)
+    sampler_ok = (sample_age is not None and sample_age <= max(config.SAMPLE_SECONDS * 3, 30)
+                  if sampler else None)
+    sensors_ok = (bool(sensors) and all(s["ok"] is True for s in sensors.values())
+                  if sampler else None)
+    degraded = bool(sampler and (not sampler_ok or not sensors_ok))
+    return {"status": "degraded" if degraded else "ok", "time": service.iso(time.time()),
+            "db": config.DB_PATH, "sample_age_seconds": sample_age,
+            "sampler_ok": sampler_ok, "sensors_ok": sensors_ok, "sensors": sensors,
             "baseline_model": bool(sampler and sampler.engine.baseline.loaded)}
 
 

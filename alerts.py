@@ -11,6 +11,7 @@ A cooldown stops the same alert repeating. Notifiers are pluggable.
 import json
 import logging
 import os
+import threading
 import time
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -70,12 +71,13 @@ class AlertEngine:
         self.baseline = baseline or Baseline(config.MODEL_PATH)
         self._streak: Dict[Tuple[str, str, str], int] = {}
         self._last_fired: Dict[Tuple[str, str, str], float] = {}
+        self._lock = threading.Lock()
 
     def _fire(self, key, sid, metric, value, level, source, msg, ts):
         if ts - self._last_fired.get(key, -1e18) < config.ALERT_COOLDOWN_S:
             return None
-        self._last_fired[key] = ts
         db.add_alert(sid, ts, metric, value, level, source, msg)
+        self._last_fired[key] = ts
         alert = dict(subject_id=sid, ts=ts, metric=metric, value=value, level=level, source=source, msg=msg)
         for n in self.notifiers:
             try:
@@ -90,6 +92,10 @@ class AlertEngine:
 
     def check(self, sid: str, metric: str, value: float, level: str, ts: Optional[float] = None) -> List[dict]:
         ts = time.time() if ts is None else ts
+        with self._lock:
+            return self._check(sid, metric, value, level, ts)
+
+    def _check(self, sid: str, metric: str, value: float, level: str, ts: float) -> List[dict]:
         m = db.metrics()[metric]
         unit = m.get("unit") or ""
         label = dict((d["name"], d["label"]) for d in db.level_defs()).get(level, level)

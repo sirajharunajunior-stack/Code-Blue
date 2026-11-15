@@ -34,9 +34,10 @@ and raises alerts. It is **not a medical device**; levels are informational.
 ## Run
 
     pip install -r requirements.txt
-    python main.py                      # http://<pi-ip>:8000/docs
+    python main.py                      # http://<pi-ip>:8000/help
 
-`health.db` must be next to `main.py` (or set `HM_DB=/path/to/health.db`).
+On first run, the backend creates `health.db` from the committed fictional demo
+snapshot. To use another database, set `HM_DB=/path/to/health.db`.
 
 ## Frontend
 
@@ -64,20 +65,21 @@ API.
 Limits live in the `metrics` table, so you can change a threshold in the database without touching code.
 Metrics with no lower limit (blood pressure, respiration, CO2) don't flag low values.
 
-## Endpoints (all under `/api`, docs at `/docs`)
+## Endpoints (all under `/api`, offline reference at `/help`)
 
 | Endpoint | What it returns |
 |---|---|
 | `GET /api/health` | service status and per-sensor status (never needs the token) |
-| `GET /subjects`, `PUT /subjects/{id}/environment?value=free_space\|planetary_surface` | crew list; change radiation environment |
-| `GET /crew` | everyone at a glance, worst level first, with flagged metrics |
-| `GET /latest?subject=A1` | newest reading of each vital and the overall level |
-| `GET /history?metric=heart_rate&subject=A1` | all readings; filter with `minutes`, `since`, `until`, `limit` |
-| `GET /daily?subject=A1` | sleep, exercise, radiation per day, with levels |
-| `GET /radiation?subject=A1` | cumulative dose vs 600 mSv career limit, projected days to limit |
-| `GET /alerts?subject=A1&n=50` | newest alerts |
-| `GET /levels`, `GET /limits` | level names/colours/ranges; thresholds |
-| `GET /export.csv?subject=A1` | vitals as CSV |
+| `GET /api/subjects`, `PUT /api/subjects/{id}/environment?value=free_space\|planetary_surface` | crew list; change radiation environment |
+| `GET /api/crew` | everyone at a glance, worst level first, with flagged metrics |
+| `GET /api/latest?subject=A1` | newest reading of each vital and the overall level |
+| `GET /api/history?metric=heart_rate&subject=A1` | all readings; filter with `minutes`, `since`, `until`, `limit` |
+| `GET /api/daily?subject=A1` | sleep, exercise, radiation per day, with levels |
+| `GET /api/radiation?subject=A1` | cumulative dose vs 600 mSv career limit, projected days to limit |
+| `POST /api/readings` | store incoming readings, classify them and run alerts |
+| `GET /api/alerts?subject=A1&n=50` | newest alerts |
+| `GET /api/levels`, `GET /api/limits` | level names/colours/ranges; thresholds |
+| `GET /api/export.csv?subject=A1` | vitals as CSV |
 
 `subject` defaults to `local` (the Pi's live sensors). `minutes` counts back from the newest reading, so it also works on the dataset.
 

@@ -5,37 +5,26 @@ import { LEVELS } from "@/lib/health/levels";
 import { BODY_SYSTEMS } from "@/lib/data";
 import type { BodySystemId, HealthLevel } from "@/types";
 
+const MIRROR = "translate(200 0) scale(-1 1)";
+
 /**
  * Anterior anatomical figure.
  *
- * Drawn inline as SVG rather than loaded from a licensed atlas: it stays crisp
- * at any size, renders on the server, never blocks on a network request and
- * works with keyboard navigation. Proportions follow the usual eight-head
- * figure; the organs, skeleton and muscle groups are simplified but
- * anatomically placed. Every hot spot maps to one of the seven systems in
- * `BODY_SYSTEMS`.
+ * A cropped, local copy of a 3D-shaded anatomical reference is the figure
+ * layer. Simplified organ and system overlays remain selectable; they are
+ * educational, not diagnostic. Every hot spot maps to one of the seven systems
+ * in `BODY_SYSTEMS`.
  */
 
-/* ---- contour paths (200 × 400 viewBox, symmetrical about x = 100) ---- */
-
-const HEAD =
-  "M100 15 C112 15 120 22 121.5 31.5 C122.8 38.4 120.8 45.5 116.1 50.6 C111.7 55.1 106.6 57.4 100 57.4 C93.4 57.4 88.3 55.1 83.9 50.6 C79.2 45.5 77.2 38.4 78.5 31.5 C80 22 88 15 100 15 Z";
-
-const TORSO =
-  "M86 58 C77.5 60.5 71.5 66.8 70 76.5 C67.8 90.8 69.2 104.8 71.4 119.4 L71.4 139.7 C71.4 148.6 69.6 158.5 66.4 167.8 C62.9 178.2 66.5 189.4 75.7 196 C83.6 201.9 91.7 204.5 100 204.5 C108.3 204.5 116.4 201.9 124.3 196 C133.5 189.4 137.1 178.2 133.6 167.8 C130.4 158.5 128.6 148.6 128.6 139.7 L128.6 119.4 C130.8 104.8 132.2 90.8 130 76.5 C128.5 66.8 122.5 60.5 114 58 C109.5 56.9 105 56.5 100 56.5 C95 56.5 90.5 56.9 86 58 Z";
-
-const ARM =
-  "M75 83 C68.5 86.3 63.9 92.5 62.6 100.9 C61.2 109.2 61.5 117.7 62 126.8 C62.6 138 63.1 149.1 63.4 160.5 C63.6 170.6 63.4 180.1 64 188.8 C64.5 196.6 65.8 202.8 68.6 209 C70.6 213.6 72.6 215.5 74.8 215.5 C76.6 215.5 77.9 213.8 77.9 210.8 C78 206.1 77.2 200.1 76.5 194.3 C75.5 184.2 75.1 172.9 75.3 161.6 C75.4 151.4 75.8 140.7 76.2 130 C76.6 117.9 77.1 106.7 79.5 95.6 C80.8 90.3 79.2 84.8 75 83 Z";
-
-const LEG =
-  "M93 206 C88.5 212.8 85.8 221.3 85.2 231.6 C84.6 242.6 85.1 254.1 85.9 265.1 C86.5 274.3 87 283.8 87.2 293.8 C87.4 305.4 86.8 315.5 86.2 325.8 C85.6 338.2 85 350.3 85.5 358.4 C85.9 364.5 88.4 369 92.2 371.3 C95.1 372.9 98.1 372.8 100.1 370.9 C101.9 369 102.8 366.1 102.6 362.5 C102.1 353.3 101.2 343.6 100.5 334.4 C99.7 323.3 99.5 312.5 99.6 301.7 C99.7 291.8 100.1 281.9 100.5 272.4 C100.8 262.8 101.4 253.5 101.9 244.2 C102.4 235 103 225.7 103.3 217.1 C103.5 211.4 101.6 208.1 98.5 206.9 C96.5 206.2 94.5 205.7 93 206 Z";
-
-const MIRROR = "translate(200 0) scale(-1 1)";
-
 /** Anatomy layers fade back when another system is selected. */
-function layer(id: BodySystemId, active: BodySystemId, rest: number) {
+function layer(
+  id: BodySystemId,
+  active: BodySystemId,
+  rest: number,
+  selected = 0.86,
+) {
   return {
-    opacity: active === id ? 1 : rest,
+    opacity: active === id ? selected : rest,
     style: { transition: "opacity 240ms ease" },
   } as const;
 }
@@ -56,22 +45,12 @@ export function BodySchematic({
 
   return (
     <svg
-      viewBox="0 0 200 400"
-      className={cn("h-full w-full", className)}
+      viewBox="0 0 200 412"
+      className={cn("h-full w-full animate-anatomy-breathe", className)}
       role="group"
       aria-label="Interactive body map. Select a body system."
     >
       <defs>
-        <linearGradient id="anatomy-skin" x1="0.15" y1="0" x2="0.85" y2="1">
-          <stop offset="0%" stopColor="#ecd4c3" />
-          <stop offset="34%" stopColor="#d3ae97" />
-          <stop offset="70%" stopColor="#b58b74" />
-          <stop offset="100%" stopColor="#8d6553" />
-        </linearGradient>
-        <radialGradient id="anatomy-sheen" cx="50%" cy="28%" r="62%">
-          <stop offset="0%" stopColor="#fff4e8" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#fff4e8" stopOpacity="0" />
-        </radialGradient>
         <linearGradient id="anatomy-lung" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#dda4aa" />
           <stop offset="100%" stopColor="#b0717a" />
@@ -89,6 +68,10 @@ export function BodySchematic({
           <stop offset="0%" stopColor="#8a423a" />
           <stop offset="100%" stopColor="#6d312c" />
         </linearGradient>
+        <linearGradient id="anatomy-kidney" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#b65c61" />
+          <stop offset="100%" stopColor="#7b3338" />
+        </linearGradient>
         <linearGradient id="anatomy-gut" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#e3ae86" />
           <stop offset="100%" stopColor="#c08a63" />
@@ -103,13 +86,10 @@ export function BodySchematic({
           <stop offset="55%" stopColor="#4ff0e4" stopOpacity="0.16" />
           <stop offset="100%" stopColor="#4ff0e4" stopOpacity="0" />
         </linearGradient>
-        <filter id="anatomy-shadow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4" />
-        </filter>
       </defs>
 
       {/* ambient light and measurement grid */}
-      <rect width="200" height="400" fill="url(#anatomy-aura)" />
+      <rect width="200" height="412" fill="url(#anatomy-aura)" />
       <g stroke="#4ff0e4" strokeWidth="0.35" opacity="0.04">
         {Array.from({ length: 17 }, (_, i) => (
           <line key={`h-${i}`} x1="24" x2="176" y1={16 + i * 22} y2={16 + i * 22} />
@@ -119,262 +99,239 @@ export function BodySchematic({
         ))}
       </g>
 
-      <ellipse cx="100" cy="374" rx="42" ry="6" fill="#000" opacity="0.55" filter="url(#anatomy-shadow)" />
-
-      {/* ---- skin and body contour ---- */}
-      <g stroke="#4a2f26" strokeWidth="0.55" strokeLinejoin="round">
-        <path d={TORSO} fill="url(#anatomy-skin)" />
-        <path d={HEAD} fill="url(#anatomy-skin)" />
-        <ellipse cx="83.6" cy="40" rx="2.6" ry="4.4" fill="url(#anatomy-skin)" />
-        <ellipse cx="116.4" cy="40" rx="2.6" ry="4.4" fill="url(#anatomy-skin)" />
-        <path d={ARM} fill="url(#anatomy-skin)" />
-        <path d={ARM} fill="url(#anatomy-skin)" transform={MIRROR} />
-        <path d={LEG} fill="url(#anatomy-skin)" />
-        <path d={LEG} fill="url(#anatomy-skin)" transform={MIRROR} />
-      </g>
-
-      {/* soft key light on the chest and face */}
-      <path d={TORSO} fill="url(#anatomy-sheen)" opacity="0.4" />
-      <path d={HEAD} fill="url(#anatomy-sheen)" opacity="0.35" />
-
-      {/* rim light ties the figure to the interface palette */}
-      <g fill="none" stroke="#8fd8d0" strokeWidth="0.45" opacity="0.2">
-        <path d={TORSO} />
-        <path d={HEAD} />
-        <path d={ARM} />
-        <path d={ARM} transform={MIRROR} />
-        <path d={LEG} />
-        <path d={LEG} transform={MIRROR} />
-      </g>
-
-      {/* ---- surface anatomy ---- */}
-      <g fill="none" stroke="#7a5344" strokeLinecap="round" opacity="0.42">
-        <path d="M88 51 C92 56 108 56 112 51" strokeWidth="0.9" />
-        <path d="M100 41 L100 47" strokeWidth="0.45" />
-        <path d="M96.5 52.4 C98.5 53.7 101.5 53.7 103.5 52.4" strokeWidth="0.5" />
-        <path d="M89.6 35.4 C91.6 34 94 34.5 95.6 36" strokeWidth="0.45" />
-        <path d="M110.4 35.4 C108.4 34 106 34.5 104.4 36" strokeWidth="0.45" />
-        <path d="M92 60 C94 64 96.5 67 100 68.5" strokeWidth="0.5" />
-        <path d="M108 60 C106 64 103.5 67 100 68.5" strokeWidth="0.5" />
-        <path d="M86 79 C92 76.4 97 76 100 76.8" strokeWidth="0.55" />
-        <path d="M114 79 C108 76.4 103 76 100 76.8" strokeWidth="0.55" />
-        <path d="M100 82 L100 120" strokeWidth="0.45" opacity="0.7" />
-        <path d="M92 114 L99 114 M92 122 L99 122 M92 130 L99 130" strokeWidth="0.4" />
-        <path d="M108 114 L101 114 M108 122 L101 122 M108 130 L101 130" strokeWidth="0.4" />
-        <path d="M83 166 C89 161 95 163 100 169" strokeWidth="0.55" />
-        <path d="M117 166 C111 161 105 163 100 169" strokeWidth="0.55" />
-        <path d="M61 144 C64 146 67 146 70 144" strokeWidth="0.5" />
-        <path d="M139 144 C136 146 133 146 130 144" strokeWidth="0.5" />
-        <path d="M84 266 C87 269 91 269 94 266" strokeWidth="0.5" />
-        <path d="M116 266 C113 269 109 269 106 266" strokeWidth="0.5" />
-        <path d="M65.5 204 L65.5 210 M67.5 205 L67.5 211 M69.5 204 L69.5 210" strokeWidth="0.35" />
-        <path d="M134.5 204 L134.5 210 M132.5 205 L132.5 211 M130.5 204 L130.5 210" strokeWidth="0.35" />
-      </g>
-      <ellipse cx="100" cy="147" rx="1.2" ry="1.6" fill="#8a6250" opacity="0.55" />
+      <image
+        x="14.9"
+        y="0"
+        width="170.2"
+        height="384"
+        href="/anatomy/human-anterior-reference.png"
+        preserveAspectRatio="none"
+        opacity="0.4"
+        aria-hidden="true"
+      />
 
       {/* ---- skeleton ---- */}
       <g
         fill="none"
         stroke="#efe2cb"
-        strokeWidth="0.9"
+        strokeWidth="0.75"
         strokeLinecap="round"
-        {...layer("bones", safeActive, 0.3)}
+        {...layer("bones", safeActive, 0.2, 0.9)}
       >
         <path
-          d="M100 22 C92 22 87 28 87 35 C87 42 92 47 100 48 C108 47 113 42 113 35 C113 28 108 22 100 22 Z"
-          strokeWidth="0.7"
+          d="M100 3 C90 3 84 11 84 22 C84 33 90 42 100 45 C110 42 116 33 116 22 C116 11 110 3 100 3 Z"
+          strokeWidth="0.8"
         />
-        <path d="M91 42 C94 48 106 48 109 42" strokeWidth="0.45" />
-        <path d="M100 62 L100 176" strokeWidth="1.1" />
-        {Array.from({ length: 15 }, (_, index) => (
+        <path d="M89 28 C92 36 108 36 111 28" strokeWidth="0.5" />
+        <path d="M100 47 L100 215" strokeWidth="1" />
+        {Array.from({ length: 21 }, (_, index) => (
           <path
             key={`v-${index}`}
-            d={`M98 ${70 + index * 7} L102 ${70 + index * 7}`}
+            d={`M98 ${54 + index * 7.5} L102 ${54 + index * 7.5}`}
             strokeWidth="0.4"
           />
         ))}
-        {[84, 90, 96, 102, 108, 114].map((y) => (
+        {[92, 100, 108, 116, 124, 132].map((y) => (
           <g key={`rib-${y}`}>
-            <path d={`M100 ${y} C92 ${y - 2} 85 ${y + 4} 84 ${y + 10}`} strokeWidth="0.65" />
-            <path d={`M100 ${y} C108 ${y - 2} 115 ${y + 4} 116 ${y + 10}`} strokeWidth="0.65" />
+            <path d={`M100 ${y} C91 ${y - 2} 83 ${y + 3} 82 ${y + 11}`} strokeWidth="0.65" />
+            <path d={`M100 ${y} C109 ${y - 2} 117 ${y + 3} 118 ${y + 11}`} strokeWidth="0.65" />
           </g>
         ))}
-        <path d="M100 76 L100 118" strokeWidth="1.4" opacity="0.85" />
-        <path d="M86 78 C92 75 97 75 100 76.4" strokeWidth="0.8" />
-        <path d="M114 78 C108 75 103 75 100 76.4" strokeWidth="0.8" />
-        <path d="M100 168 C95 162 88 162 83 166 C81 172 83 179 88 182" strokeWidth="0.8" />
-        <path d="M100 168 C105 162 112 162 117 166 C119 172 117 179 112 182" strokeWidth="0.8" />
-        <path d="M92 181 C96 185 104 185 108 181" strokeWidth="0.7" />
-        <path d="M74 90 L66 140 L63 188" strokeWidth="0.8" />
-        <path d="M74 90 L66 140 L63 188" strokeWidth="0.8" transform={MIRROR} />
-        <path d="M93 184 L86 262 L87 352" strokeWidth="0.9" />
-        <path d="M93 184 L86 262 L87 352" strokeWidth="0.9" transform={MIRROR} />
-        <circle cx="74" cy="90" r="1.8" />
-        <circle cx="126" cy="90" r="1.8" />
-        <circle cx="66" cy="140" r="1.5" />
-        <circle cx="134" cy="140" r="1.5" />
-        <circle cx="86" cy="266" r="1.8" />
-        <circle cx="114" cy="266" r="1.8" />
-        <circle cx="87" cy="352" r="1.5" />
-        <circle cx="113" cy="352" r="1.5" />
+        <path d="M100 91 L100 139" strokeWidth="1.4" opacity="0.85" />
+        <path d="M100 69 C89 69 77 72 66 74 M100 69 C111 69 123 72 134 74" strokeWidth="0.8" />
+        <path d="M100 198 C92 190 84 194 82 203 C83 214 90 220 100 223" strokeWidth="0.8" />
+        <path d="M100 198 C108 190 116 194 118 203 C117 214 110 220 100 223" strokeWidth="0.8" />
+        <path d="M66 74 L43 131 L25 180" strokeWidth="0.8" />
+        <path d="M66 74 L43 131 L25 180" strokeWidth="0.8" transform={MIRROR} />
+        <path d="M88 215 C85 233 83 256 84 279 C85 291 87 301 88 311 C89 328 90 344 89 356" strokeWidth="0.9" />
+        <path d="M88 215 C85 233 83 256 84 279 C85 291 87 301 88 311 C89 328 90 344 89 356" strokeWidth="0.9" transform={MIRROR} />
+        <path d="M89 355 C86 362 83 367 80 372 M89 355 C91 362 93 368 94 374" strokeWidth="0.65" />
+        <path d="M89 355 C86 362 83 367 80 372 M89 355 C91 362 93 368 94 374" strokeWidth="0.65" transform={MIRROR} />
+        <circle cx="66" cy="74" r="2" />
+        <circle cx="134" cy="74" r="2" />
+        <circle cx="43" cy="131" r="1.6" />
+        <circle cx="157" cy="131" r="1.6" />
+        <circle cx="84" cy="279" r="1.8" />
+        <circle cx="116" cy="279" r="1.8" />
+        <circle cx="89" cy="356" r="1.5" />
+        <circle cx="111" cy="356" r="1.5" />
       </g>
 
       {/* ---- musculature ---- */}
-      <g fill="#b5574f" {...layer("muscles", safeActive, 0.13)}>
-        <path d="M99 88 C93 87 87 90 85 96 C84 101 88 104 94 104 C98 104 99 100 99 96 Z" />
-        <path d="M101 88 C107 87 113 90 115 96 C116 101 112 104 106 104 C102 104 101 100 101 96 Z" />
-        <ellipse cx="73" cy="92" rx="5.5" ry="7.5" />
-        <ellipse cx="127" cy="92" rx="5.5" ry="7.5" />
-        <ellipse cx="67" cy="116" rx="4.2" ry="13" />
-        <ellipse cx="133" cy="116" rx="4.2" ry="13" />
-        <ellipse cx="65" cy="162" rx="3.6" ry="14" />
-        <ellipse cx="135" cy="162" rx="3.6" ry="14" />
-        {[108, 116, 124, 132].map((y) => (
+      <g fill="#b5574f" {...layer("muscles", safeActive, 0.08, 0.5)}>
+        <path d="M99 82 C91 79 82 82 79 89 C77 96 84 103 94 105 C98 103 99 96 99 90 Z" />
+        <path d="M101 82 C109 79 118 82 121 89 C123 96 116 103 106 105 C102 103 101 96 101 90 Z" />
+        <ellipse cx="72" cy="72" rx="8" ry="11" />
+        <ellipse cx="128" cy="72" rx="8" ry="11" />
+        <ellipse cx="55" cy="101" rx="5.2" ry="19" transform="rotate(18 55 101)" />
+        <ellipse cx="145" cy="101" rx="5.2" ry="19" transform="rotate(-18 145 101)" />
+        <ellipse cx="37" cy="151" rx="4.2" ry="17" transform="rotate(14 37 151)" />
+        <ellipse cx="163" cy="151" rx="4.2" ry="17" transform="rotate(-14 163 151)" />
+        {[130, 139, 148, 157].map((y) => (
           <g key={`ab-${y}`}>
-            <rect x="93" y={y} width="6" height="7" rx="2" />
-            <rect x="101" y={y} width="6" height="7" rx="2" />
+            <rect x="92" y={y} width="7" height="8" rx="2.5" />
+            <rect x="101" y={y} width="7" height="8" rx="2.5" />
           </g>
         ))}
-        <ellipse cx="89" cy="220" rx="6" ry="22" />
-        <ellipse cx="111" cy="220" rx="6" ry="22" />
-        <ellipse cx="89" cy="302" rx="4.5" ry="16" />
-        <ellipse cx="111" cy="302" rx="4.5" ry="16" />
+        <ellipse cx="88" cy="238" rx="7" ry="26" />
+        <ellipse cx="112" cy="238" rx="7" ry="26" />
+        <ellipse cx="88" cy="326" rx="5.2" ry="20" />
+        <ellipse cx="112" cy="326" rx="5.2" ry="20" />
       </g>
 
       {/* ---- brain ---- */}
-      <g {...layer("brain", safeActive, 0.5)}>
+      <g {...layer("brain", safeActive, 0.25, 0.92)}>
         <path
-          d="M100 23 C91 23 86 28 86 34 C86 40 91 44 100 44 C109 44 114 40 114 34 C114 28 109 23 100 23 Z"
+          d="M100 5 C91 5 86 10 86 18 C86 26 91 32 100 33 C109 32 114 26 114 18 C114 10 109 5 100 5 Z"
           fill="url(#anatomy-brain)"
           stroke="#a96b6b"
           strokeWidth="0.4"
         />
         <g fill="none" stroke="#a96b6b" strokeWidth="0.5" opacity="0.85" strokeLinecap="round">
-          <path d="M100 24 L100 43" />
-          <path d="M93 27 C96 30 94 34 97 37" />
-          <path d="M107 27 C104 30 106 34 103 37" />
-          <path d="M89 33 C92 34 93 38 96 40" />
-          <path d="M111 33 C108 34 107 38 104 40" />
-          <path d="M96 24 C95 28 98 30 96 33" />
-          <path d="M104 24 C105 28 102 30 104 33" />
+          <path d="M100 6 L100 32" />
+          <path d="M93 8 C96 12 94 16 97 20" />
+          <path d="M107 8 C104 12 106 16 103 20" />
+          <path d="M89 15 C92 16 93 20 96 23" />
+          <path d="M111 15 C108 16 107 20 104 23" />
+          <path d="M96 6 C95 10 98 12 96 15" />
+          <path d="M104 6 C105 10 102 12 104 15" />
         </g>
         <path
-          d="M94 43 C94 47.5 98 48.5 100 47 C102 48.5 106 47.5 106 43 Z"
+          d="M94 32 C94 39 98 40 100 38 C102 40 106 39 106 32 Z"
           fill="#c98a8a"
           stroke="#a96b6b"
           strokeWidth="0.4"
         />
-        <path d="M96 44.5 L96 47.5 M99 44.5 L99 47.5 M102 44.5 L102 47.5" stroke="#a96b6b" strokeWidth="0.35" />
-        <path d="M98.6 42 L98.6 50 L101.4 50 L101.4 42 Z" fill="#c9958f" stroke="#a96b6b" strokeWidth="0.3" />
+        <path d="M96 34 L96 38 M99 34 L99 38 M102 34 L102 38" stroke="#a96b6b" strokeWidth="0.35" />
+        <path d="M98.6 38 L98.6 52 L101.4 52 L101.4 38 Z" fill="#c9958f" stroke="#a96b6b" strokeWidth="0.3" />
       </g>
 
       {/* ---- eyes ---- */}
-      <g {...layer("eyes", safeActive, 0.62)}>
-        {[93, 107].map((cx) => (
+      <g {...layer("eyes", safeActive, 0.3, 0.9)}>
+        {[94, 106].map((cx) => (
           <g key={`eye-${cx}`}>
-            <ellipse cx={cx} cy="48" rx="3.6" ry="2.3" fill="#f4ece2" stroke="#8a6250" strokeWidth="0.35" />
-            <circle cx={cx} cy="48" r="1.5" fill="#6fa9cf" />
-            <circle cx={cx} cy="48" r="0.7" fill="#14181d" />
-            <path
-              d={`M${cx - 3.4} 47 C${cx - 2} 45.6 ${cx + 2} 45.6 ${cx + 3.4} 47`}
-              fill="none"
-              stroke="#5a3d33"
-              strokeWidth="0.4"
-            />
+            <ellipse cx={cx} cy="23" rx="3.8" ry="1.8" fill="none" stroke="#bce2ef" strokeWidth="0.7" />
           </g>
         ))}
       </g>
 
       {/* ---- lungs ---- */}
       <g
+        className="animate-anatomy-lungs"
         stroke="#8f5a62"
         strokeWidth="0.4"
-        {...layer("lungs", safeActive, 0.42)}
+        {...layer("lungs", safeActive, 0.3, 0.92)}
       >
-        <path d="M98 64 L98 78 M102 64 L102 78" stroke="#c9a896" strokeWidth="1.6" />
+        <path d="M98 58 L98 85 M102 58 L102 85" stroke="#c9a896" strokeWidth="1.6" />
         <path
-          d="M98 78 C94 80 91 84 90 88 M102 78 C106 80 109 84 110 88"
+          d="M98 83 C94 85 91 90 90 94 M102 83 C106 85 109 90 110 94"
           fill="none"
           stroke="#c9a896"
           strokeWidth="0.9"
         />
         <path
-          d="M97.5 79 C90 82 86 90 85 100 C84 110 87 119 92 124 C95 127 97.5 125 97.5 120 Z"
+          d="M97.5 84 C90 87 86 95 85 105 C84 116 87 128 92 135 C95 138 97.5 136 97.5 130 Z"
           fill="url(#anatomy-lung)"
         />
         <path
-          d="M102.5 79 C110 82 114 90 115 100 C116 110 113 119 108 124 C105 127 102.5 125 102.5 120 Z"
+          d="M102.5 84 C110 87 114 95 115 105 C116 116 113 128 108 135 C105 138 102.5 136 102.5 130 Z"
           fill="url(#anatomy-lung)"
         />
-        <path d="M88 100 C91 106 94 112 96 119" fill="none" strokeWidth="0.4" opacity="0.7" />
-        <path d="M112 100 C109 106 106 112 104 119" fill="none" strokeWidth="0.4" opacity="0.7" />
-        <path d="M92 84 C95 89 96 95 96 101" fill="none" stroke="#c08a92" strokeWidth="0.45" />
-        <path d="M108 84 C105 89 104 95 104 101" fill="none" stroke="#c08a92" strokeWidth="0.45" />
+        <path d="M88 105 C91 112 94 121 96 130" fill="none" strokeWidth="0.4" opacity="0.7" />
+        <path d="M112 105 C109 112 106 121 104 130" fill="none" strokeWidth="0.4" opacity="0.7" />
+        <path d="M92 90 C95 96 96 103 96 110" fill="none" stroke="#c08a92" strokeWidth="0.45" />
+        <path d="M108 90 C105 96 104 103 104 110" fill="none" stroke="#c08a92" strokeWidth="0.45" />
       </g>
 
       {/* ---- heart ---- */}
-      <g {...layer("heart", safeActive, 0.58)}>
+      <g className="animate-anatomy-heart" {...layer("heart", safeActive, 0.35, 0.95)}>
         <path
-          d="M102 100 C106 96 112 98 112 105 C112 112 107 118 102 122 C98 118 93 112 93 106 C93 100 98 97 102 100 Z"
+          d="M102 112 C106 107 113 109 113 116 C113 124 107 132 102 137 C97 132 92 125 92 118 C92 111 98 108 102 112 Z"
           fill="url(#anatomy-heart)"
           stroke="#7d222a"
           strokeWidth="0.4"
         />
         <path
-          d="M104 99 C104 93 108 90 112 91"
+          d="M104 111 C104 104 108 101 112 102"
           fill="none"
           stroke="#c16a6a"
           strokeWidth="2.2"
           strokeLinecap="round"
         />
         <path
-          d="M100 99 C97 94 93 92 90 94"
+          d="M100 111 C97 105 93 103 90 105"
           fill="none"
           stroke="#a85a5a"
           strokeWidth="1.8"
           strokeLinecap="round"
         />
-        <path d="M102 104 C100 110 100 116 102 120" fill="none" stroke="#7d222a" strokeWidth="0.6" opacity="0.85" />
-        <path d="M95 106 C98 108 99 111 98 114" fill="none" stroke="#8f2b33" strokeWidth="0.5" opacity="0.7" />
+        <path d="M102 116 C100 122 100 130 102 135" fill="none" stroke="#7d222a" strokeWidth="0.6" opacity="0.85" />
+        <path d="M95 118 C98 120 99 123 98 126" fill="none" stroke="#8f2b33" strokeWidth="0.5" opacity="0.7" />
       </g>
 
       {/* ---- digestive tract ---- */}
-      <g {...layer("digestive", safeActive, 0.42)}>
-        <path d="M100 76 L100 126" fill="none" stroke="#c98a6a" strokeWidth="1.7" />
+      <g {...layer("digestive", safeActive, 0.3, 0.92)}>
+        <path d="M100 87 L100 147" fill="none" stroke="#c98a6a" strokeWidth="1.7" />
         <path
-          d="M99 127 C94 124 87 125 84 129 C81 133 81 138 85 141 C90 144 96 144 99 141 Z"
+          d="M82 155 C77 156 76 162 79 168 C82 173 87 169 87 164 C87 160 85 157 82 155 Z"
+          fill="url(#anatomy-kidney)"
+          stroke="#713139"
+          strokeWidth="0.5"
+        />
+        <path
+          d="M82 155 C77 156 76 162 79 168 C82 173 87 169 87 164 C87 160 85 157 82 155 Z"
+          fill="url(#anatomy-kidney)"
+          stroke="#713139"
+          strokeWidth="0.5"
+          transform={MIRROR}
+        />
+        <path
+          d="M96 165 C100 162 107 163 111 166 C107 169 100 169 96 165 Z"
+          fill="#d9a875"
+          stroke="#9d704c"
+          strokeWidth="0.4"
+        />
+        <path
+          d="M99 148 C93 145 84 146 80 151 C77 156 80 164 87 166 C92 167 98 164 100 160 Z"
           fill="url(#anatomy-liver)"
           stroke="#5e2723"
           strokeWidth="0.4"
         />
         <path
-          d="M101 128 C105 125 110 128 112 133 C114 139 111 146 106 147 C102 147 100 143 100 138 Z"
+          d="M102 151 C107 146 113 149 114 155 C115 161 111 168 106 169 C102 169 100 164 100 160 Z"
           fill="#cf9070"
           stroke="#9a5b45"
           strokeWidth="0.4"
         />
         <path
-          d="M100 133 C104 132 108 133 111 135"
-          fill="none"
-          stroke="#d8b07a"
-          strokeWidth="1.6"
-          strokeLinecap="round"
+          d="M117 153 C121 153 123 158 121 163 C119 167 116 165 115 162 C114 158 115 155 117 153 Z"
+          fill="#70414b"
+          stroke="#4c3038"
+          strokeWidth="0.45"
         />
+        <path d="M96 159 C94 162 95 166 98 167 C100 164 100 161 98 159 Z" fill="#78905c" stroke="#536541" strokeWidth="0.4" />
+        <path d="M84 169 C84 180 91 189 98 198 M116 169 C116 180 109 189 102 198" fill="none" stroke="#c98a6a" strokeWidth="0.8" />
         <path
-          d="M107 142 L108 162 L106 168 M107 142 L93 142 L90 162 L92 168"
+          d="M92 185 C90 179 91 170 92 166 C97 164 103 164 108 166 C109 171 110 180 108 185 C106 190 103 190 101 187"
           fill="none"
           stroke="#c79a72"
-          strokeWidth="3.2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity="0.9"
         />
         <path
-          d="M95 150 C90 155 93 162 99 161 C104 160 105 154 100 152 C96 150 92 155 95 160 C98 165 104 163 106 158"
+          d="M94 171 C98 168 104 169 104 173 C104 177 96 175 95 179 C94 183 103 181 105 184 C106 187 99 189 96 186"
           fill="none"
-          stroke="#dda882"
-          strokeWidth="2.4"
+          stroke="url(#anatomy-gut)"
+          strokeWidth="1.5"
           strokeLinecap="round"
+        />
+        <path d="M101 187 L101 198" fill="none" stroke="#c79a72" strokeWidth="1.6" strokeLinecap="round" />
+        <path
+          d="M95 199 C95 194 105 194 105 199 L104 206 C102 210 98 210 96 206 Z"
+          fill="#c77d82"
+          stroke="#86444a"
+          strokeWidth="0.45"
         />
       </g>
 
@@ -383,7 +340,7 @@ export function BodySchematic({
         x="24"
         y="0"
         width="152"
-        height="400"
+        height="412"
         fill="url(#anatomy-scan)"
         className="animate-sweep"
         pointerEvents="none"
@@ -470,25 +427,13 @@ export function BodySchematic({
           })()}
         </g>
       )}
-
       {/* ---- frame ---- */}
       <g stroke="#1b3f55" strokeWidth="0.8" opacity="0.9">
         <path d="M10 12 h10 M10 12 v10" fill="none" />
         <path d="M190 12 h-10 M190 12 v10" fill="none" />
-        <path d="M10 388 h10 M10 388 v-10" fill="none" />
-        <path d="M190 388 h-10 M190 388 v-10" fill="none" />
+        <path d="M10 408 h10 M10 408 v-10" fill="none" />
+        <path d="M190 408 h-10 M190 408 v-10" fill="none" />
       </g>
-      <text
-        x="100"
-        y="394"
-        textAnchor="middle"
-        fill="#4f6878"
-        fontSize="5"
-        fontFamily="var(--font-mono)"
-        letterSpacing="1.4"
-      >
-        ANTERIOR VIEW · ANATOMICAL GUIDE
-      </text>
     </svg>
   );
 }

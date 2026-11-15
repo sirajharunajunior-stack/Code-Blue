@@ -1,7 +1,6 @@
 """Tests for the safety-precautions feature. No FastAPI needed.
 Run:  python tests/test_advice.py     (or: pytest -q tests/test_advice.py)"""
 import os
-import shutil
 import sys
 import tempfile
 
@@ -10,7 +9,6 @@ sys.path.insert(0, ROOT)
 _tmp = tempfile.mkdtemp()
 os.environ["HM_DB"] = os.path.join(_tmp, "test.db")
 os.environ["HM_MODEL"] = os.path.join(_tmp, "model.json")
-shutil.copy(os.path.join(ROOT, "health.db"), os.environ["HM_DB"])
 
 import advice  # noqa: E402
 import db  # noqa: E402

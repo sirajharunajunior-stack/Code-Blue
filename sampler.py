@@ -28,6 +28,7 @@ class Sampler:
         self._stop = threading.Event()
         self._thread = None
         self._last_prune = 0.0
+        self.last_sample_ts = None
 
     def sample_once(self):
         ts = time.time()
@@ -42,6 +43,7 @@ class Sampler:
             except Exception as e:  # noqa: BLE001
                 log.exception("sensor %s failed", s.name)
                 st.update(ok=False, error=f"{type(e).__name__}: {e}")
+        self.last_sample_ts = time.time()
         if ts - self._last_prune > 3600:
             db.prune_live()
             self._last_prune = ts

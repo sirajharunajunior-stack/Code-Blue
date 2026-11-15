@@ -9,7 +9,8 @@ and raises alerts. It is **not a medical device**; levels are informational.
     pip install -r requirements.txt
     python main.py                      # API reference: http://<pi-ip>:8000/help
 
-`health.db` must be next to `main.py` (or set `HM_DB=/path/to/health.db`).
+On first run, the backend creates `health.db` from the committed fictional demo
+snapshot. To use another database, set `HM_DB=/path/to/health.db`.
 
 
 ## Health levels
@@ -76,7 +77,7 @@ Set `HM_SIMULATE=0` to make a missing sensor an error instead of falling back to
     python tests/test_core.py                          # logic only, no extra packages
     pip install -r requirements-dev.txt && pytest -q   # full API tests (test_api.py + test_core.py)
 
-Tests use a temporary copy of `health.db`.
+Tests initialize isolated temporary databases from the committed demo snapshot.
 
 ## Run as a service on the Pi
 
