@@ -91,6 +91,11 @@ class Settings:
     ai_timeout_seconds: float = field(
         default_factory=lambda: max(2.0, _env_float("AI_TIMEOUT_SECONDS", 15.0))
     )
+    ai_chat_requests_per_minute: int = field(
+        default_factory=lambda: max(
+            1, int(os.getenv("AI_CHAT_REQUESTS_PER_MINUTE", "10"))
+        )
+    )
     cors_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(
             origin.strip()

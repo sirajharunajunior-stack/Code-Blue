@@ -119,6 +119,7 @@ uvicorn app.main:app --reload --port 8000
 
 Gemini uses the `gemini-3.5-flash-lite` default for lower-latency chat. You can
 override it with `AI_MODEL` if your key supports another model.
+AI chat is capped at 10 requests per minute per backend process by default.
 
 The local `prototype/backend/.env` file is Git-ignored. If it is missing, copy
 `prototype/backend/.env.example` to `.env`. The backend reads the file at startup;
@@ -145,6 +146,7 @@ real or identifiable health data. See the [Gemini API pricing and data-use terms
 | `AI_BASE_URL` | Gemini endpoint with `GEMINI_API_KEY`; otherwise OpenAI endpoint | OpenAI-compatible API base |
 | `AI_MODEL` | `gemini-3.5-flash-lite` with `GEMINI_API_KEY`; otherwise `gpt-4o-mini` | Chat-completions model |
 | `AI_TIMEOUT_SECONDS` | `15` | LLM request timeout |
+| `AI_CHAT_REQUESTS_PER_MINUTE` | `10` | Per-process cap for AI chat requests |
 | `MONITOR_DB` | `prototype/backend/monitor.db` | SQLite database path |
 | `MONITOR_TICK_SECONDS` | `2` | Simulator sampling interval |
 | `MONITOR_AUTOSTART` | `true` | Start sampling on application startup |
@@ -153,6 +155,54 @@ real or identifiable health data. See the [Gemini API pricing and data-use terms
 Without a key, or when an LLM request fails, the API returns deterministic
 fallback guidance and marks `ai_status` as `fallback`. Critical alerts are
 created and broadcast before any AI request starts.
+
+## Hosting the prototype
+
+The Gemini prototype can use Vercel for its static Vite frontend and Fly.io for
+the FastAPI backend. Vercel cannot keep this backend's sampling loop, SQLite
+database, and WebSocket service running as a normal static deployment.
+
+### Backend on Fly.io
+
+The backend includes a `Dockerfile` and `fly.toml`. From PowerShell:
+
+```powershell
+cd prototype\backend
+fly launch --no-deploy
+fly volumes create monitor_data --region iad --size 1
+fly deploy
+```
+
+In the Fly.io dashboard, set these app environment values/secrets:
+
+- `GEMINI_API_KEY`: paste the Gemini key as a Fly secret; never put it in
+  `fly.toml` or the frontend.
+- `CORS_ORIGINS`: the exact Vercel deployment origin, such as
+  `https://your-project.vercel.app`.
+
+The Fly app is intentionally configured as one always-on machine because the
+simulator and SQLite volume are single-instance. Fly currently charges for the
+machine and volume; a 512 MB machine plus a 1 GB volume is roughly $3.84/month
+in the lowest-priced US regions before bandwidth or optional services. Check
+Fly's [current pricing](https://fly.io/docs/about/pricing/) before deploying.
+
+### Frontend on Vercel
+
+Import this GitHub repository as a Vercel project and set **Root Directory** to
+`prototype/frontend`. Vercel should detect Vite; use `npm run build` and `dist`
+if it asks for build settings. Add this frontend environment variable:
+
+```text
+VITE_API_BASE=https://code-blue-crew-monitor-fda0a9f.fly.dev
+```
+
+Redeploy after setting the variable. Then set `CORS_ORIGINS` in Fly to the
+project's exact Vercel origin. The frontend does not need the Gemini key; it
+stays only in the backend's Fly secrets.
+
+The API uses simulated readings only and has a per-process AI chat limit. It is
+still a public demo API, not an authenticated or medically validated service.
+Never use it with real or identifiable health data.
 
 The LLM prompts prohibit inventing readings, diagnosis, certainty, medication
 advice, and dosage guidance. The backend normalizes AI output, rejects

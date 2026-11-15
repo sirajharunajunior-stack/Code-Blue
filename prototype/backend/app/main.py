@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
+from time import monotonic
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +19,8 @@ from .utils import iso_now
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or Settings()
     monitor = MonitorService(app_settings)
+    ai_request_times: deque[float] = deque()
+    ai_rate_limit_lock = asyncio.Lock()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -109,6 +114,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/api/ai/chat")
     async def ai_chat(request: ChatRequest) -> dict:
+        if monitor.ai.enabled:
+            now = monotonic()
+            async with ai_rate_limit_lock:
+                while ai_request_times and now - ai_request_times[0] >= 60:
+                    ai_request_times.popleft()
+                if len(ai_request_times) >= app_settings.ai_chat_requests_per_minute:
+                    retry_after = max(1, int(60 - (now - ai_request_times[0])))
+                    raise HTTPException(
+                        status_code=429,
+                        detail="AI chat is temporarily rate-limited; try again shortly.",
+                        headers={"Retry-After": str(retry_after)},
+                    )
+                ai_request_times.append(now)
         history = [message.model_dump() for message in request.history]
         reply, status = await monitor.ai.chat(
             request.message,

@@ -176,6 +176,32 @@ def test_ai_chat_failure_is_logged_without_leaking_error_details(monkeypatch, ca
     assert "sensitive value" not in caplog.text
 
 
+def test_ai_chat_rate_limit_is_enforced(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    settings = Settings(
+        db_path=tmp_path / "monitor.db",
+        ai_api_key="test-key",
+        ai_chat_requests_per_minute=1,
+        auto_start=False,
+    )
+    app = create_app(settings)
+
+    async def fake_chat(_message, _history, _context):
+        return "OK", "ready"
+
+    monkeypatch.setattr(app.state.monitor.ai, "chat", fake_chat)
+    with TestClient(app) as client:
+        payload = {"message": "Reply with OK."}
+        assert client.post("/api/ai/chat", json=payload).status_code == 200
+        response = client.post("/api/ai/chat", json=payload)
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"]
+
+
 def test_low_temperature_guidance_fits_the_condition():
     service = AIService(Settings(ai_api_key=""))
     low_temperature = context() | {
