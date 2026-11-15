@@ -1,6 +1,6 @@
 """Export a compact, frontend-friendly snapshot of the health.db dataset.
 
-The ASTRA frontend ships with demonstration data so it runs without the
+The CODE-BLUE frontend ships with demonstration data so it runs without the
 FastAPI backend. This script is the *only* place that reads health.db, and it
 writes plain JSON into lib/data/ — replacing this JSON (or pointing the data
 repositories at the API) is all that is needed to go live.
@@ -27,7 +27,7 @@ def open_db():
     """
     if not os.path.exists(DB):
         raise SystemExit(f"database not found: {DB}\nSet HM_DB to point at health.db")
-    fd, tmp = tempfile.mkstemp(prefix="astra_export_", suffix=".db")
+    fd, tmp = tempfile.mkstemp(prefix="code_blue_export_", suffix=".db")
     os.close(fd)
     try:
         source = sqlite3.connect(DB, timeout=15)

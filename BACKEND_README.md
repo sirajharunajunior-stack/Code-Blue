@@ -1,4 +1,4 @@
-# Astronaut Health Monitor: backend
+# CODE-BLUE: backend
 
 Offline backend for a Raspberry Pi. It serves the astronaut dataset (A1–A3) from `health.db`,
 reads the Pi's own sensors (subject `local`), classifies everything into four health levels,

@@ -1,5 +1,5 @@
 /**
- * ASTRA domain types.
+ * CODE-BLUE domain types.
  *
  * These mirror the FastAPI backend in the repository root
  * (`/api/levels`, `/api/limits`, `/api/latest`, `/api/history`, `/api/daily`,

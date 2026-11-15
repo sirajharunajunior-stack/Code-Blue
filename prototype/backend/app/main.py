@@ -26,7 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await monitor.shutdown()
 
     app = FastAPI(
-        title="ASTRA Crew Monitor Prototype",
+        title="CODE-BLUE Crew Monitor Prototype",
         version="1.0.0",
         lifespan=lifespan,
     )

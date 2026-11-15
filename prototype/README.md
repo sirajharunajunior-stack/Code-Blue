@@ -1,4 +1,4 @@
-# ASTRA Crew Monitor - Prototype 1
+# CODE-BLUE Crew Monitor - Prototype 1
 
 A runnable, end-to-end astronaut health monitoring prototype. A simulated
 wearable drives live vital signs through a Python monitoring engine, persistent

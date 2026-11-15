@@ -1,4 +1,4 @@
-# Astronaut Health Monitor
+# CODE-BLUE - Astronaut Health Monitor
 
 ## Prototype 1: live AI crew monitor
 
@@ -41,7 +41,7 @@ snapshot. To use another database, set `HM_DB=/path/to/health.db`.
 
 ## Frontend
 
-`frontend/` is the ASTRA Next.js interface: biometrics, body explorer, guided
+`frontend/` is the CODE-BLUE Next.js interface: biometrics, body explorer, guided
 assessments and hazard countermeasures. It runs on an exported demonstration
 snapshot, so the backend does not need to be running:
 

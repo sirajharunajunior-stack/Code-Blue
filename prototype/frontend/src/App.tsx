@@ -37,7 +37,7 @@ export default function App() {
       <div className="flex min-h-screen items-center justify-center p-5">
         <div className="w-full max-w-md text-center">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand">
-            ASTRA
+            CODE-BLUE
           </p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight">
             Connecting to crew monitor
@@ -71,7 +71,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand">
-                  ASTRA
+                  CODE-BLUE
                 </p>
                 <p className="text-sm font-semibold tracking-tight">Crew health monitor</p>
               </div>
@@ -175,7 +175,7 @@ export default function App() {
       </main>
 
       <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 pb-6 pt-3 text-[10px] text-muted sm:px-7">
-        <span>ASTRA crew health prototype · simulated telemetry</span>
+        <span>CODE-BLUE crew health prototype · simulated telemetry</span>
         <span>Research use only · not for medical decisions</span>
       </footer>
     </div>

@@ -92,7 +92,7 @@ const SOURCE_META: Record<
 };
 
 /**
- * Provenance marker. Every number in ASTRA can be traced to a source, and
+ * Provenance marker. Every number in CODE-BLUE can be traced to a source, and
  * self-reported values are never presented as instrument measurements.
  */
 export function SourceTag({

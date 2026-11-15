@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   ASTRA — design tokens
+   CODE-BLUE — design tokens
    Deep-space telemetry palette. Every colour, radius and type scale used by
    the interface is declared here and consumed through Tailwind utilities.
    ========================================================================== */
@@ -190,7 +190,7 @@
   }
 }
 
-@keyframes astra-pulse {
+@keyframes code-blue-pulse {
   0%,
   100% {
     opacity: 1;
@@ -202,7 +202,7 @@
   }
 }
 
-@keyframes astra-sweep {
+@keyframes code-blue-sweep {
   0% {
     transform: translateY(-100%);
     opacity: 0;
@@ -219,7 +219,7 @@
   }
 }
 
-@keyframes astra-dash {
+@keyframes code-blue-dash {
   to {
     stroke-dashoffset: 0;
   }
@@ -266,7 +266,7 @@
 }
 
 .animate-pulse-dot {
-  animation: astra-pulse 2.4s ease-in-out infinite;
+  animation: code-blue-pulse 2.4s ease-in-out infinite;
   /* Scale about the dot itself; the default SVG origin is the viewBox corner. */
   transform-box: fill-box;
   transform-origin: center;
@@ -291,7 +291,7 @@
 }
 
 .animate-sweep {
-  animation: astra-sweep 7s linear infinite;
+  animation: code-blue-sweep 7s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

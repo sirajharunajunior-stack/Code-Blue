@@ -8,7 +8,7 @@ export default function NotFound() {
         <Compass className="mx-auto size-6 text-signal/70" />
         <h1 className="mt-3 text-[18px] font-medium text-ink">Page not found</h1>
         <p className="mt-1.5 text-[11px] leading-relaxed text-mute">
-          This address is not part of ASTRA.
+          This address is not part of CODE-BLUE.
         </p>
         <Link
           href="/"

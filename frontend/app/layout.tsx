@@ -16,12 +16,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "ASTRA · Astronaut Health",
-    template: "%s · ASTRA",
+    default: "CODE-BLUE · Astronaut Health",
+    template: "%s · CODE-BLUE",
   },
   description:
-    "ASTRA is a demonstration astronaut health platform: vitals, a body map, guided health checks and spaceflight hazards. Not a medical device.",
-  applicationName: "ASTRA",
+    "CODE-BLUE is a demonstration astronaut health platform: vitals, a body map, guided health checks and spaceflight hazards. Not a medical device.",
+  applicationName: "CODE-BLUE",
   keywords: ["astronaut health", "spaceflight", "biometrics"],
 };
 

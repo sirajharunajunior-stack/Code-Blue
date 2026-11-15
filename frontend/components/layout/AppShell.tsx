@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
           <footer className="border-t border-line/60 px-4 py-3 sm:px-5">
             <p className="mx-auto max-w-[1500px] text-[9.5px] text-dim">
-              ASTRA · demo data · Not a medical device.
+              CODE-BLUE · demo data · Not a medical device.
             </p>
           </footer>
         </div>

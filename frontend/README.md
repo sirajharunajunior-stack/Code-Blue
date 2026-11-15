@@ -1,4 +1,4 @@
-# ASTRA — astronaut health telemetry frontend
+# CODE-BLUE - astronaut health telemetry frontend
 
 A dark, dense mission-control interface for long-duration crew health: live
 biometrics, an interactive body explorer, guided self-assessments and the five
@@ -23,9 +23,10 @@ data layer.
 | `/hazards`       | Hazard detail with adaptive charts (radiation, daily, trend or fallback) and cadence-filtered countermeasures |
 
 Shared shell: fixed sidebar with mission clock, compact top bar with the active
-crew selector, and a mobile drawer. The active crew member is persisted in
-`localStorage` (`astra:active-crew`); submitted assessments are persisted under
-`astra:assessment-results:v1`.
+crew selector, and a mobile drawer. The active crew member is persisted in `localStorage` (`astra:active-crew`);
+submitted assessments are persisted under `astra:assessment-results:v1`. The
+legacy `astra:` storage namespace is retained so existing browser data survives
+the rebrand.
 
 ## Stack
 

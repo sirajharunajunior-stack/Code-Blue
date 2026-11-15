@@ -45,7 +45,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <BrandMark />
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[15px] font-semibold tracking-[0.22em] text-ink">ASTRA</span>
+            <span className="text-[15px] font-semibold tracking-[0.22em] text-ink">CODE-BLUE</span>
             <span className="font-mono text-[8px] tracking-[0.16em] text-signal/80">v1.0</span>
           </div>
           <p className="label-tech mt-0.5 text-[8.5px]">Astronaut health</p>
