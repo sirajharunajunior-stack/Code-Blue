@@ -92,6 +92,31 @@ def test_auth_token(client, monkeypatch):
     assert client.get("/api/crew", headers={"X-API-Token": "secret"}).status_code == 200
 
 
+def test_network_bind_requires_api_token(monkeypatch):
+    import config
+
+    monkeypatch.setattr(config, "HOST", "0.0.0.0")
+    monkeypatch.setattr(config, "API_TOKEN", "")
+    with pytest.raises(RuntimeError, match="HM_API_TOKEN"):
+        config.validate_network_security()
+
+
+def test_loopback_bind_allows_no_api_token(monkeypatch):
+    import config
+
+    monkeypatch.setattr(config, "HOST", "127.0.0.1")
+    monkeypatch.setattr(config, "API_TOKEN", "")
+    config.validate_network_security()
+
+
+def test_network_bind_accepts_api_token(monkeypatch):
+    import config
+
+    monkeypatch.setattr(config, "HOST", "0.0.0.0")
+    monkeypatch.setattr(config, "API_TOKEN", "test-token")
+    config.validate_network_security()
+
+
 def test_precautions_library(client):
     j = client.get("/api/precautions").json()
     assert len(j["conditions"]) == 11 and j["disclaimer"]

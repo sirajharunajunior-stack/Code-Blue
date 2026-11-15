@@ -1,4 +1,5 @@
 """All settings come from environment variables (HM_*), with safe defaults."""
+import ipaddress
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,12 +12,24 @@ def _bool(name: str, default: bool) -> bool:
 DB_PATH = os.environ.get("HM_DB", os.path.join(BASE_DIR, "health.db"))
 MODEL_PATH = os.environ.get("HM_MODEL", os.path.join(BASE_DIR, "model.json"))
 
-HOST = os.environ.get("HM_HOST", "0.0.0.0")
+HOST = os.environ.get("HM_HOST", "127.0.0.1")
 PORT = int(os.environ.get("HM_PORT", "8000"))
 
 # If set, every /api route except /api/health needs an X-API-Token header.
 # Read at request time (config.API_TOKEN), so it can be changed in tests.
 API_TOKEN = os.environ.get("HM_API_TOKEN", "")
+
+
+def validate_network_security() -> None:
+    """Require API authentication whenever the server binds off-loopback."""
+    try:
+        loopback = ipaddress.ip_address(HOST).is_loopback
+    except ValueError:
+        loopback = HOST.strip().lower() == "localhost"
+    if not loopback and not API_TOKEN.strip():
+        raise RuntimeError(
+            "HM_API_TOKEN is required when HM_HOST binds to a network interface"
+        )
 
 # The Pi's own live sensors are stored under this subject id.
 LOCAL_SUBJECT = os.environ.get("HM_LOCAL_SUBJECT", "local")

@@ -25,6 +25,7 @@ from sampler import Sampler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    config.validate_network_security()
     db.init()
     app.state.sampler = None
     if config.SAMPLER_ENABLED:

@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
@@ -23,6 +25,7 @@ def _env_float(name: str, default: float) -> float:
 
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BACKEND_DIR / ".env", override=False)
 
 
 @dataclass(frozen=True)
@@ -61,16 +64,29 @@ class Settings:
         default_factory=lambda: _env_bool("MONITOR_AUTOSTART", True)
     )
     ai_api_key: str = field(
-        default_factory=lambda: os.getenv("AI_API_KEY", "")
-        or os.getenv("OPENAI_API_KEY", "")
+        default_factory=lambda: os.getenv("GEMINI_API_KEY", "").strip()
+        or os.getenv("AI_API_KEY", "").strip()
+        or os.getenv("OPENAI_API_KEY", "").strip()
     )
     ai_base_url: str = field(
         default_factory=lambda: (
-            os.getenv("AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+            os.getenv("AI_BASE_URL")
+            or (
+                "https://generativelanguage.googleapis.com/v1beta/openai"
+                if os.getenv("GEMINI_API_KEY", "").strip()
+                else "https://api.openai.com/v1"
+            )
         )
     )
     ai_model: str = field(
-        default_factory=lambda: os.getenv("AI_MODEL", "gpt-4o-mini")
+        default_factory=lambda: (
+            os.getenv("AI_MODEL")
+            or (
+                "gemini-3.5-flash-lite"
+                if os.getenv("GEMINI_API_KEY", "").strip()
+                else "gpt-4o-mini"
+            )
+        )
     )
     ai_timeout_seconds: float = field(
         default_factory=lambda: max(2.0, _env_float("AI_TIMEOUT_SECONDS", 15.0))

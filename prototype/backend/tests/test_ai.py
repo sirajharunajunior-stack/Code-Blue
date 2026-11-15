@@ -44,6 +44,63 @@ def test_explain_alert_without_key_returns_fallback():
     assert explanation["source"] == "fallback"
 
 
+def test_gemini_environment_selects_compatible_endpoint_and_model(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.delenv("AI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("AI_BASE_URL", raising=False)
+    monkeypatch.delenv("AI_MODEL", raising=False)
+
+    settings = Settings()
+
+    assert settings.ai_api_key == "test-gemini-key"
+    assert settings.ai_base_url == "https://generativelanguage.googleapis.com/v1beta/openai"
+    assert settings.ai_model == "gemini-3.5-flash-lite"
+    assert settings.ai_enabled
+
+
+def test_gemini_completion_uses_server_side_key_and_api_endpoint(monkeypatch):
+    service = AIService(
+        Settings(
+            ai_api_key="test-gemini-key",
+            ai_base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+            ai_model="gemini-3.5-flash-lite",
+        )
+    )
+    request = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "Gemini response"}}]}
+
+    class FakeClient:
+        def __init__(self, timeout):
+            assert timeout == service.settings.ai_timeout_seconds
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def post(self, url, headers, json):
+            request.update(url=url, headers=headers, payload=json)
+            return FakeResponse()
+
+    monkeypatch.setattr("app.ai.httpx.AsyncClient", FakeClient)
+    response = asyncio.run(service._complete({"model": "gemini-3.5-flash-lite"}))
+
+    assert response == "Gemini response"
+    assert request["url"] == (
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    )
+    assert request["headers"]["Authorization"] == "Bearer test-gemini-key"
+    assert request["payload"]["model"] == "gemini-3.5-flash-lite"
+
+
 def test_ai_json_is_normalized(monkeypatch):
     service = AIService(Settings(ai_api_key="test-key"))
 
@@ -99,6 +156,24 @@ def test_invalid_ai_output_falls_back(monkeypatch):
     )
     assert status == "fallback"
     assert explanation["source"] == "fallback"
+
+
+def test_ai_chat_failure_is_logged_without_leaking_error_details(monkeypatch, caplog):
+    service = AIService(Settings(ai_api_key="test-key"))
+
+    async def fail_with_sensitive_detail(_payload):
+        raise RuntimeError("provider response included a sensitive value")
+
+    monkeypatch.setattr(service, "_complete", fail_with_sensitive_detail)
+    with caplog.at_level("WARNING", logger="app.ai"):
+        reply, status = asyncio.run(
+            service.chat("What is my status?", [], {"vitals": [], "active_alerts": []})
+        )
+
+    assert status == "fallback"
+    assert reply
+    assert "RuntimeError" in caplog.text
+    assert "sensitive value" not in caplog.text
 
 
 def test_low_temperature_guidance_fits_the_condition():

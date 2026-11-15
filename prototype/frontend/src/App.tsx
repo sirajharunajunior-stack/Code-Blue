@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { useMonitor } from "./hooks/useMonitor";
 import { cx } from "./lib/format";
-import { Alerts } from "./pages/Alerts";
-import { Assistant } from "./pages/Assistant";
-import { Health } from "./pages/Health";
-import { Overview } from "./pages/Overview";
+
+const Alerts = lazy(() =>
+  import("./pages/Alerts").then((module) => ({ default: module.Alerts })),
+);
+const Assistant = lazy(() =>
+  import("./pages/Assistant").then((module) => ({ default: module.Assistant })),
+);
+const Health = lazy(() =>
+  import("./pages/Health").then((module) => ({ default: module.Health })),
+);
+const Overview = lazy(() =>
+  import("./pages/Overview").then((module) => ({ default: module.Overview })),
+);
 
 type Page = "overview" | "health" | "assistant" | "alerts";
 
@@ -151,27 +160,35 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-        {page === "overview" && (
-          <Overview
-            snapshot={snapshot}
-            busy={busy}
-            onStart={start}
-            onStop={stop}
-            onScenario={scenario}
-            onDisconnect={disconnect}
-            onReconnect={reconnect}
-            onOpenAlerts={() => setPage("alerts")}
-          />
-        )}
-        {page === "health" && <Health snapshot={snapshot} />}
-        {page === "assistant" && <Assistant snapshot={snapshot} />}
-        {page === "alerts" && (
-          <Alerts
-            snapshot={snapshot}
-            busy={busy}
-            onAcknowledge={acknowledge}
-          />
-        )}
+        <Suspense
+          fallback={
+            <div className="rounded-2xl border border-line bg-surface p-5 text-sm text-muted">
+              Loading section…
+            </div>
+          }
+        >
+          {page === "overview" && (
+            <Overview
+              snapshot={snapshot}
+              busy={busy}
+              onStart={start}
+              onStop={stop}
+              onScenario={scenario}
+              onDisconnect={disconnect}
+              onReconnect={reconnect}
+              onOpenAlerts={() => setPage("alerts")}
+            />
+          )}
+          {page === "health" && <Health snapshot={snapshot} />}
+          {page === "assistant" && <Assistant snapshot={snapshot} />}
+          {page === "alerts" && (
+            <Alerts
+              snapshot={snapshot}
+              busy={busy}
+              onAcknowledge={acknowledge}
+            />
+          )}
+        </Suspense>
       </main>
 
       <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 pb-6 pt-3 text-[10px] text-muted sm:px-7">

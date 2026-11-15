@@ -114,9 +114,9 @@ Set `HM_SIMULATE=0` to make a missing sensor an error instead of falling back to
 
 * Run **one** Uvicorn process. The sampler owns the live sensor loop, so multiple
   workers would record the same reading several times.
-* Set `HM_API_TOKEN` in any shared environment. Without it, every `/api` route is
-  readable by anyone who can reach the port. `GET /api/health` stays public for
-  liveness checks.
+* The backend binds to `127.0.0.1` by default. To expose it on a network, set
+  `HM_HOST=0.0.0.0` and configure `HM_API_TOKEN`; startup fails if a non-loopback
+  bind has no token. `GET /api/health` stays public for liveness checks.
 * Keep the API behind a TLS reverse proxy and restrict `HM_CORS` to the deployed
   frontend origin.
 * `HM_SIMULATE=1` is the default. Set it to `0` so a missing sensor is reported

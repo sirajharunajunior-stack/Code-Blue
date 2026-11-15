@@ -107,26 +107,43 @@ The interface always carries a `DEMO DATA` label.
 ## AI configuration
 
 The AI integration is optional. Configure it only on the backend; never put API
-keys in the frontend.
+keys in the frontend or commit them to the repository. The existing monitor
+assistant and alert explanations can use Gemini through Google's OpenAI-compatible
+chat-completions endpoint.
 
 ```bash
-# Windows PowerShell
-$env:AI_API_KEY = "your-key"
-$env:AI_MODEL = "gpt-4o-mini"
+# Open prototype/backend/.env and paste your key after GEMINI_API_KEY=.
+# Then, from prototype/backend, start the backend:
 uvicorn app.main:app --reload --port 8000
 ```
 
+Gemini uses the `gemini-3.5-flash-lite` default for lower-latency chat. You can
+override it with `AI_MODEL` if your key supports another model.
+
+The local `prototype/backend/.env` file is Git-ignored. If it is missing, copy
+`prototype/backend/.env.example` to `.env`. The backend reads the file at startup;
+restart it after changing the key. Environment variables already set in the
+terminal take precedence over values in `.env`.
+
 ```bash
-# macOS/Linux
-AI_API_KEY=your-key AI_MODEL=gpt-4o-mini uvicorn app.main:app --reload --port 8000
+# macOS/Linux (from prototype/backend)
+GEMINI_API_KEY=your-key AI_MODEL=gemini-3.5-flash-lite uvicorn app.main:app --reload --port 8000
 ```
+
+Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey).
+Keep it in the local backend `.env` file; do not paste it into chat, frontend
+code, screenshots, or source control. The Gemini free tier has model-specific
+availability and rate limits that can change. Google may use free-tier prompts
+to improve its products, so this demo must only send simulated telemetry, never
+real or identifiable health data. See the [Gemini API pricing and data-use terms](https://ai.google.dev/gemini-api/docs/pricing).
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `AI_API_KEY` | empty | Enables LLM explanations and chat |
-| `OPENAI_API_KEY` | empty | Alternative key name |
-| `AI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible API base |
-| `AI_MODEL` | `gpt-4o-mini` | Chat-completions model |
+| `GEMINI_API_KEY` | empty | Enables Gemini-backed explanations and chat |
+| `AI_API_KEY` | empty | Generic/legacy key name |
+| `OPENAI_API_KEY` | empty | Legacy OpenAI key name |
+| `AI_BASE_URL` | Gemini endpoint with `GEMINI_API_KEY`; otherwise OpenAI endpoint | OpenAI-compatible API base |
+| `AI_MODEL` | `gemini-3.5-flash-lite` with `GEMINI_API_KEY`; otherwise `gpt-4o-mini` | Chat-completions model |
 | `AI_TIMEOUT_SECONDS` | `15` | LLM request timeout |
 | `MONITOR_DB` | `prototype/backend/monitor.db` | SQLite database path |
 | `MONITOR_TICK_SECONDS` | `2` | Simulator sampling interval |

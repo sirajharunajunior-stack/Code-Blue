@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 import httpx
 
 from .config import Settings
+
+logger = logging.getLogger(__name__)
 
 EXPLANATION_KEYS = (
     "detected",
@@ -330,7 +333,11 @@ class AIService:
                 raise ValueError("Unsafe AI guidance")
             explanation["source"] = "ai"
             return explanation, "ready"
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AI alert explanation failed; using deterministic fallback (%s)",
+                type(exc).__name__,
+            )
             return fallback, "fallback"
 
     async def chat(
@@ -377,7 +384,11 @@ class AIService:
             if self._contains_unsafe_advice(reply):
                 raise ValueError("Unsafe AI guidance")
             return reply.strip(), "ready"
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AI chat request failed; using deterministic fallback (%s)",
+                type(exc).__name__,
+            )
             return fallback, "fallback"
 
     async def _complete(self, payload: dict[str, Any]) -> str:

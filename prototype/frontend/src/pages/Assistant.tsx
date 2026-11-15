@@ -74,7 +74,8 @@ export function Assistant({ snapshot }: { snapshot: Snapshot }) {
             Ask the monitor
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Answers use the current simulated telemetry only.
+            Uses simulated telemetry. When cloud AI is enabled, messages and
+            readings are sent to the configured provider.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
