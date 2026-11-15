@@ -6,3 +6,6 @@ model.json
 *.db-shm
 .pytest_cache/
 .env
+
+health.db
+*.db-journal
