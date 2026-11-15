@@ -56,7 +56,7 @@ export function HazardCard({
           <Icon className="size-3.5" />
         </span>
         <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-dim">
-          {String(hazard.countermeasures.length).padStart(2, "0")} CM
+          {String(hazard.countermeasures.length).padStart(2, "0")} steps
         </span>
       </div>
 

@@ -140,15 +140,14 @@ class MonitorService:
                     }
                     new_alert_contexts = self._reconcile_alerts(payload, assessments)
                     updated = self.engine.update_baselines(payload, assessments)
-                    for vital in VITALS:
+                    for vital in updated:
                         baseline = self.engine.baseline(vital)
-                        if vital in updated or baseline.samples > 0:
-                            self.db.save_baseline(
-                                vital,
-                                baseline.mean,
-                                baseline.std,
-                                baseline.samples,
-                            )
+                        self.db.save_baseline(
+                            vital,
+                            baseline.mean,
+                            baseline.std,
+                            baseline.samples,
+                        )
                     snapshot = self.snapshot()
         await self.broadcast(snapshot)
         for alert_id, context in new_alert_contexts:
@@ -340,9 +339,9 @@ class MonitorService:
     def snapshot(self) -> dict[str, Any]:
         now = iso_now()
         recent_alerts = self.db.list_alerts(limit=30)
-        active_alerts = [
-            alert for alert in recent_alerts if alert["status"] != "resolved"
-        ]
+        # Query active alerts directly: filtering the recent page would drop an
+        # alert that is still open but older than the newest 30 entries.
+        active_alerts = self.db.list_alerts(limit=200, active_only=True)
         readings = self.db.recent_readings(120)
         latest = self._latest_reading or (readings[-1] if readings else None)
 

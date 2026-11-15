@@ -2,16 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Check, Satellite, ShieldAlert } from "lucide-react";
+import { Check, Satellite } from "lucide-react";
 import { NAV_ITEMS, navItemFor } from "@/components/layout/nav";
 import { useCrew } from "@/components/providers/CrewProvider";
 import { LEVELS } from "@/lib/health/levels";
-import { getOverallLevel } from "@/lib/data/vitals";
-import { getCrew } from "@/lib/data/subjects";
-import { MISSION, MISSION_DAY } from "@/lib/data/mission";
-import { formatMissionElapsed } from "@/lib/health/format";
+import { getOverallLevel, MISSION, MISSION_DAY } from "@/lib/data";
 import { cn } from "@/lib/utils/cn";
-import { DemoTag } from "@/components/ui/Badge";
 
 export function BrandMark({ className }: { className?: string }) {
   return (
@@ -40,8 +36,7 @@ export function BrandMark({ className }: { className?: string }) {
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const active = navItemFor(pathname);
-  const { subjectId, setSubjectId } = useCrew();
-  const crew = getCrew();
+  const { subjectId, setSubjectId, crew } = useCrew();
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-panel/80 to-void/95">
@@ -53,13 +48,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <span className="text-[15px] font-semibold tracking-[0.22em] text-ink">ASTRA</span>
             <span className="font-mono text-[8px] tracking-[0.16em] text-signal/80">v1.0</span>
           </div>
-          <p className="label-tech mt-0.5 text-[8.5px]">Astronaut health platform</p>
+          <p className="label-tech mt-0.5 text-[8.5px]">Astronaut health</p>
         </div>
       </div>
 
       {/* nav */}
       <nav className="scroll-thin flex-1 overflow-y-auto px-2 py-3" aria-label="Sections">
-        <div className="label-tech px-2 pb-2">Sections</div>
         <ul className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive = item.href === active.href;
@@ -97,14 +91,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       {item.description}
                     </span>
                   </span>
-                  <span
-                    className={cn(
-                      "font-mono text-[8px] tracking-[0.1em]",
-                      isActive ? "text-signal/70" : "text-dim/60",
-                    )}
-                  >
-                    {item.index}
-                  </span>
                 </Link>
               </li>
             );
@@ -112,7 +98,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </ul>
 
         {/* crew */}
-        <div className="label-tech mt-5 px-2 pb-2">Crew · select</div>
+        <div className="label-tech mt-5 px-2 pb-2">Crew</div>
         <ul className="space-y-0.5">
           {crew.map((member) => {
             const level = getOverallLevel(member.id);
@@ -144,43 +130,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </ul>
       </nav>
 
-      {/* mission + disclaimer */}
-      <div className="space-y-2.5 border-t border-line/70 px-3 py-3">
+      {/* mission */}
+      <div className="border-t border-line/70 px-3 py-3">
         <div className="rounded-md border border-line/70 bg-deep/50 p-2.5">
           <div className="flex items-center justify-between">
             <span className="label-tech">Mission</span>
             <Satellite className="size-3 text-dim" />
           </div>
           <p className="mt-1 text-[11.5px] font-medium tracking-[0.06em] text-ink">{MISSION.name}</p>
-          <dl className="mt-1.5 space-y-0.5 font-mono text-[9px] text-mute">
-            <div className="flex justify-between gap-2">
-              <dt className="text-dim">MET</dt>
-              <dd className="num">{formatMissionElapsed(MISSION.now - MISSION.launch)}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-dim">FD</dt>
-              <dd className="num">{MISSION_DAY}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-dim">SOLAR</dt>
-              <dd className="uppercase text-amber">{MISSION.solarActivity}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="flex items-start gap-1.5 rounded-md border border-violet/25 bg-violet/6 px-2 py-1.5">
-          <ShieldAlert className="mt-px size-3 shrink-0 text-violet" />
-          <p className="text-[9px] leading-snug text-mute">
-            <DemoTag className="mr-1 align-middle" />
-            Demonstration data. Informational only — not a medical device.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between px-0.5 font-mono text-[8.5px] text-dim">
-          <span>Snapshot · demonstration data</span>
-          <Link href="/hazards" className="inline-flex items-center gap-0.5 hover:text-signal">
-            Hazards <ArrowUpRight className="size-2.5" />
-          </Link>
+          <p className="mt-1 font-mono text-[9px] text-mute">Flight day {MISSION_DAY}</p>
         </div>
       </div>
     </div>

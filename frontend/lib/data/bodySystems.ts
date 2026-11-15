@@ -3,7 +3,7 @@ import type { BodySystem, BodySystemId } from "@/types";
 /**
  * Body systems used by the Digital Human explorer.
  *
- * Region coordinates are in the 200 × 420 schematic viewBox drawn by
+ * Region coordinates are in the 200 × 400 schematic viewBox drawn by
  * `components/anatomy/BodySchematic.tsx`. Reference content summarises widely
  * published spaceflight physiology in plain language; it is not a clinical
  * protocol. Treatment decisions belong to the flight surgeon.
@@ -13,7 +13,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "brain",
     label: "Brain & neurobehavioural",
     shortLabel: "Brain",
-    region: { cx: 100, cy: 40, rx: 19, ry: 17 },
+    region: { cx: 100, cy: 31 },
     summary: "Sleep, mood, cognition and the body's stress response.",
     function:
       "Integrates sensory input, regulates sleep and mood, and coordinates every voluntary action.",
@@ -36,7 +36,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "eyes",
     label: "Eyes & vision",
     shortLabel: "Eyes",
-    region: { cx: 100, cy: 51, rx: 15, ry: 7 },
+    region: { cx: 100, cy: 48 },
     summary: "Visual acuity, eye pressure and the neuro-ocular changes seen in flight.",
     function: "Focuses light onto the retina and converts it into nerve signals.",
     spaceflightEffects: [
@@ -58,7 +58,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "heart",
     label: "Heart & circulation",
     shortLabel: "Heart",
-    region: { cx: 95, cy: 116, rx: 10, ry: 11 },
+    region: { cx: 103, cy: 110 },
     summary: "Resting rate, blood pressure and orthostatic tolerance.",
     function:
       "Pumps blood through the body and adjusts pressure as posture, load and fluid volume change.",
@@ -81,7 +81,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "lungs",
     label: "Lungs & respiration",
     shortLabel: "Lungs",
-    region: { cx: 107, cy: 112, rx: 21, ry: 18 },
+    region: { cx: 90, cy: 98 },
     summary: "Oxygen saturation, breathing rate and cabin atmosphere exposure.",
     function: "Exchanges oxygen and carbon dioxide between the blood and the cabin atmosphere.",
     spaceflightEffects: [
@@ -103,7 +103,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "digestive",
     label: "Digestive & metabolic",
     shortLabel: "Digestive",
-    region: { cx: 100, cy: 158, rx: 17, ry: 16 },
+    region: { cx: 100, cy: 158 },
     summary: "Appetite, glucose, hydration and gut health.",
     function: "Breaks down food, absorbs nutrients and fluid, and regulates blood glucose.",
     spaceflightEffects: [
@@ -125,7 +125,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "bones",
     label: "Bones & skeleton",
     shortLabel: "Bones",
-    region: { cx: 88, cy: 268, rx: 13, ry: 62 },
+    region: { cx: 88, cy: 268 },
     summary: "Bone mineral density, fracture risk and renal stone risk.",
     function: "Provides structure, protects organs and stores calcium and marrow.",
     spaceflightEffects: [
@@ -147,7 +147,7 @@ export const BODY_SYSTEMS: BodySystem[] = [
     id: "muscles",
     label: "Muscles & strength",
     shortLabel: "Muscles",
-    region: { cx: 64, cy: 132, rx: 11, ry: 27 },
+    region: { cx: 67, cy: 116 },
     summary: "Strength, endurance and functional capacity.",
     function: "Produces movement, stabilises joints and supports posture against load.",
     spaceflightEffects: [

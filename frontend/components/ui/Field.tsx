@@ -51,6 +51,7 @@ export function ScaleField({
   max = 10,
   labelLow,
   labelHigh,
+  ariaLabel,
 }: {
   value: number | null;
   onChange: (value: number) => void;
@@ -58,12 +59,40 @@ export function ScaleField({
   max?: number;
   labelLow?: string;
   labelHigh?: string;
+  ariaLabel?: string;
 }) {
   const steps = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  const hasValue = value !== null && value >= min && value <= max;
 
   return (
     <div className="space-y-1.5">
-      <div className="flex gap-1" role="radiogroup">
+      <div
+        className="flex gap-1"
+        role="radiogroup"
+        aria-label={ariaLabel}
+        onKeyDown={(event) => {
+          const keys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "Home", "End"];
+          if (!keys.includes(event.key)) return;
+          event.preventDefault();
+          const buttons = Array.from(
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
+          );
+          if (buttons.length === 0) return;
+          const current = buttons.findIndex((button) => button.getAttribute("aria-checked") === "true");
+          let next = current === -1 ? 0 : current;
+          if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            next = Math.min(buttons.length - 1, next + 1);
+          } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            next = Math.max(0, next - 1);
+          } else if (event.key === "Home") {
+            next = 0;
+          } else if (event.key === "End") {
+            next = buttons.length - 1;
+          }
+          buttons[next]?.focus();
+          onChange(min + next);
+        }}
+      >
         {steps.map((step) => {
           const active = value === step;
           return (
@@ -72,6 +101,7 @@ export function ScaleField({
               type="button"
               role="radio"
               aria-checked={active}
+              tabIndex={active || (!hasValue && step === min) ? 0 : -1}
               onClick={() => onChange(step)}
               className={cn(
                 "h-8 flex-1 rounded-[4px] border font-mono text-[11px] tabular-nums transition-colors",

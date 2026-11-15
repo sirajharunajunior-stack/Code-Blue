@@ -20,6 +20,7 @@ import config  # noqa: E402
 import db  # noqa: E402
 import levels  # noqa: E402
 import sampler as sampler_mod  # noqa: E402
+import sensors as sensors_mod  # noqa: E402
 import service  # noqa: E402
 import train  # noqa: E402
 
@@ -65,6 +66,20 @@ def test_subjects_latest_history():
     assert raises(service.NotFound, service.history, "A1", "nope")
     assert raises(service.NotFound, service.latest, "ZZ")
     assert raises(service.BadRequest, service.history, "A1", "sleep_hours")
+
+
+def test_invalid_sensor_values_are_rejected():
+    for value in (float("nan"), float("inf"), float("-inf"), True):
+        assert raises(ValueError, db.add_reading, config.LOCAL_SUBJECT, "heart_rate", value)
+
+
+def test_bad_sensor_hardware_fails_closed():
+    old = config.SIMULATE
+    config.SIMULATE = False
+    try:
+        assert raises(NotImplementedError, sensors_mod.CabinSensor)
+    finally:
+        config.SIMULATE = old
 
 
 def test_levels_and_colors():
@@ -125,6 +140,35 @@ def test_cooldown_and_broken_notifier():
     assert len(eng.check("T2", "spo2", 85, "critical", ts=5400)) == 1      # after cooldown
     assert len(sent) == 2                                                   # broken notifier didn't block
     config.ALERT_COOLDOWN_S = 0
+
+
+def test_malformed_baseline_is_ignored():
+    path = os.path.join(_tmp, "bad-model.json")
+    with open(path, "w") as f:
+        json.dump({"subjects": {"A1": {"heart_rate": {"all": {"mean": "not-a-number", "std": 1}}}}}, f)
+    base = alerts_mod.Baseline(path)
+    assert base.loaded and base.zscore("A1", "heart_rate", 0, 70) is None
+    assert base.zscore("A1", "missing_metric", 0, 70) is None
+    with open(path, "w") as f:
+        f.write("{not json")
+    broken = alerts_mod.Baseline(path)
+    assert not broken.loaded and broken.zscore("A1", "heart_rate", 0, 70) is None
+
+
+def test_alert_survives_storage_failure():
+    orig = db.add_alert
+    sent = []
+
+    def failing(*args, **kwargs):
+        raise RuntimeError("disk full")
+
+    db.add_alert = failing
+    try:
+        eng = alerts_mod.AlertEngine(notifiers=[sent.append], baseline=alerts_mod.Baseline("/nonexistent"))
+        out = eng.check("T3", "spo2", 85, "critical", ts=7000)
+        assert len(out) == 1 and len(sent) == 1 and sent[0]["level"] == "critical"
+    finally:
+        db.add_alert = orig
 
 
 def test_train_and_baseline_drift():

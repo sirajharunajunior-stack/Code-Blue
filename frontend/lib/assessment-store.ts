@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ASSESSMENTS } from "@/lib/data/assessments";
-import { getMetric } from "@/lib/data/metrics";
+import { ASSESSMENTS, getMetric, MISSION } from "@/lib/data";
 import { classify } from "@/lib/health/levels";
-import { MISSION } from "@/lib/data/mission";
 import type {
   AssessmentAnswer,
   AssessmentResult,
@@ -21,20 +19,49 @@ const EVENT = "astra:assessments-changed";
  */
 type StoredResult = AssessmentResult;
 
+const HEALTH_LEVELS: HealthLevel[] = [
+  "normal",
+  "slightly_abnormal",
+  "needs_checkup",
+  "critical",
+];
+
+/** Reject anything that does not match the persisted shape, so a corrupted or
+ *  older localStorage entry cannot crash the assessment screen. */
+function isStoredResult(value: unknown): value is StoredResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  return (
+    typeof result.assessmentId === "string" &&
+    typeof result.subjectId === "string" &&
+    typeof result.submittedAt === "number" &&
+    Number.isFinite(result.submittedAt) &&
+    Array.isArray(result.answers) &&
+    typeof result.notes === "string" &&
+    HEALTH_LEVELS.includes(result.level as HealthLevel)
+  );
+}
+
 function readAll(): StoredResult[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as StoredResult[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter(isStoredResult).sort((a, b) => b.submittedAt - a.submittedAt)
+      : [];
   } catch {
     return [];
   }
 }
 
 function writeAll(results: StoredResult[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+  } catch {
+    /* Quota or disabled storage: keep the in-memory result and notify listeners. */
+  }
   window.dispatchEvent(new Event(EVENT));
   window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
 }

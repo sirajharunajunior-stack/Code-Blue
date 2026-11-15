@@ -3,7 +3,7 @@ import { LevelBadge, SourceTag } from "@/components/ui/Badge";
 import { Meter } from "@/components/ui/Meter";
 import { formatMetricValue, formatRelative } from "@/lib/health/format";
 import { rankOf } from "@/lib/health/levels";
-import { MISSION } from "@/lib/data/mission";
+import { MISSION } from "@/lib/data";
 import type { LatestReading } from "@/types";
 
 /** Newest value of every recorded vital, worst first. */
@@ -12,10 +12,9 @@ export function RecentMeasurements({ readings }: { readings: LatestReading[] }) 
 
   return (
     <Panel
-      label="Measurements / latest"
-      title="Recent measurements"
+      title="Latest readings"
       flush
-      action={<span className="font-mono text-[9px] text-dim">{rows.length} metrics</span>}
+      action={<span className="font-mono text-[9px] text-dim">{rows.length} readings</span>}
     >
       <div className="scroll-thin max-h-[268px] overflow-x-auto overflow-y-auto">
         <table className="w-full min-w-[480px] border-collapse text-left">

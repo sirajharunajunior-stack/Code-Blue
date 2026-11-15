@@ -70,11 +70,15 @@ def history(sid: str, metric: str, minutes: Optional[float] = None, since: Optio
         raise NotFound(f"unknown metric '{metric}'")
     if m["kind"] != "vital":
         raise BadRequest(f"'{metric}' is a daily metric; use /api/daily")
+    if since is not None and until is not None and since > until:
+        raise BadRequest("since must be earlier than until")
     if minutes is not None:
         # window ends at the newest reading, so it also works on historical data
         last = db.recent_values(sid, metric, 1)
         if last:
             since = last[0]["ts"] - minutes * 60
+        else:
+            since = None
     rows = db.history(sid, metric, since, until, limit)
     for r in rows:
         r["time"] = iso(r["ts"])
@@ -123,7 +127,7 @@ def radiation(sid: str) -> dict:
     days = db.daily(sid)
     doses = [d["radiation"] for d in days if d["radiation"] is not None]
     baseline = statistics.median(doses) if doses else None
-    cumulative = days[-1]["cumulative_radiation"] if days else 0.0
+    cumulative = (days[-1]["cumulative_radiation"] if days else 0.0) or 0.0
     recent = doses[-7:]
     avg = statistics.fmean(recent) if recent else None
     remaining = max(0.0, limit - cumulative)
@@ -131,9 +135,11 @@ def radiation(sid: str) -> dict:
     # recompute today's level with the CURRENT environment (it can be changed via the API)
     event = 0.0
     for d in days:
-        event = event + d["radiation"] if spike and d["radiation"] >= spike else 0.0
-    today = (levels.classify_radiation(m, days[-1]["radiation"], env, baseline, event)
-             if days and baseline else None)
+        dose = d["radiation"]
+        event = event + dose if spike and dose is not None and dose >= spike else 0.0
+    last_dose = days[-1]["radiation"] if days else None
+    today = (levels.classify_radiation(m, last_dose, env, baseline, event)
+             if last_dose is not None and baseline else None)
     return {
         "subject": sid, "environment": env, "environments": levels.environments(m),
         "normal_max_mSv_day": env_max, "career_limit_mSv": limit,

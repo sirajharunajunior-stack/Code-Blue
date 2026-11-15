@@ -80,6 +80,8 @@ class CabinSensor(Sensor):
 
     def setup(self):
         self.simulated = True
+        if not config.SIMULATE:
+            raise NotImplementedError("NDIR CO2 / respiration sensor driver not written yet (see sensors.py)")
 
     def read(self):
         return {"cabin_co2": round(max(0.05, 0.40 + random.gauss(0, 0.03)), 3),

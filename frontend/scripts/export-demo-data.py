@@ -9,7 +9,6 @@ Usage (from frontend/):  python scripts/export-demo-data.py
 """
 import json
 import os
-import shutil
 import sqlite3
 import tempfile
 
@@ -20,11 +19,28 @@ BUCKET = 3600  # one point per hour keeps charts smooth and the payload small
 
 
 def open_db():
-    tmp = os.path.join(tempfile.gettempdir(), "astra_export.db")
-    shutil.copyfile(DB, tmp)
-    conn = sqlite3.connect(tmp)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Snapshot the database with SQLite's backup API.
+
+    A plain file copy can miss transactions still sitting in the WAL file while
+    the backend is running. ``backup`` reads a consistent view without taking
+    the writer lock.
+    """
+    if not os.path.exists(DB):
+        raise SystemExit(f"database not found: {DB}\nSet HM_DB to point at health.db")
+    fd, tmp = tempfile.mkstemp(prefix="astra_export_", suffix=".db")
+    os.close(fd)
+    try:
+        source = sqlite3.connect(DB, timeout=15)
+        target = sqlite3.connect(tmp)
+        try:
+            source.backup(target)
+        finally:
+            source.close()
+        target.row_factory = sqlite3.Row
+        return target, tmp
+    except Exception:
+        os.unlink(tmp)
+        raise
 
 
 def downsample(rows):
@@ -40,10 +56,7 @@ def downsample(rows):
     return out
 
 
-def main():
-    os.makedirs(OUT, exist_ok=True)
-    c = open_db()
-
+def export(c):
     metrics = [dict(r) for r in c.execute("SELECT * FROM metrics ORDER BY kind, name")]
     subjects = [dict(r) for r in c.execute("SELECT * FROM subjects ORDER BY id")]
     levels = [dict(r) for r in c.execute("SELECT * FROM levels ORDER BY code")]
@@ -55,6 +68,11 @@ def main():
     readings, daily, alerts = {}, {}, []
     for s in subjects:
         sid = s["id"]
+        # `local` is the Pi's live sensor stream, not part of the astronaut demo
+        # snapshot. Keeping it out also prevents its wall-clock timestamps from
+        # becoming the frontend's demonstration "now".
+        if sid == "local":
+            continue
         per_metric = {}
         for m in metrics:
             if m["kind"] != "vital":
@@ -64,7 +82,7 @@ def main():
                 (sid, m["name"])))
             if not rows:
                 continue
-            kept = downsample(rows) if sid != "local" else rows[::max(1, len(rows) // 60)]
+            kept = downsample(rows)
             per_metric[m["name"]] = [[int(r["ts"]), round(r["value"], 3), r["level"]] for r in kept]
         if per_metric:
             readings[sid] = per_metric
@@ -76,8 +94,8 @@ def main():
                 "ts": int(r["ts"]),
                 "sleep_hours": r["sleep_hours"],
                 "exercise_hours": r["exercise_hours"],
-                "radiation": round(r["radiation"], 3),
-                "cumulative_radiation": round(r["cumulative_radiation"], 3),
+                "radiation": None if r["radiation"] is None else round(r["radiation"], 3),
+                "cumulative_radiation": None if r["cumulative_radiation"] is None else round(r["cumulative_radiation"], 3),
                 "levels": {
                     "sleep_hours": r["sleep_level"],
                     "exercise_hours": r["exercise_level"],
@@ -104,7 +122,8 @@ def main():
         "levels": levels,
         "ranges": ranges,
         "meta": meta,
-        "subjects": [{k: s[k] for k in ("id", "name", "environment")} for s in subjects],
+        "subjects": [{k: s[k] for k in ("id", "name", "environment")}
+                     for s in subjects if s["id"] != "local"],
     }
 
     def dump(name, obj):
@@ -117,6 +136,19 @@ def main():
     dump("daily.json", daily)
     dump("alerts.json", alerts)
     dump("reference.json", payload)
+
+
+def main():
+    os.makedirs(OUT, exist_ok=True)
+    c, tmp = open_db()
+    try:
+        export(c)
+    finally:
+        c.close()
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":

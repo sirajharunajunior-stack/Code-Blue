@@ -17,19 +17,22 @@ import { RadiationPanel } from "@/components/biometrics/RadiationPanel";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { useCrew } from "@/components/providers/CrewProvider";
 import { useAssessments } from "@/lib/assessment-store";
-import { ASSESSMENTS } from "@/lib/data/assessments";
-import { getMetric, METRICS, PRIMARY_VITAL_IDS, TRENDABLE_IDS } from "@/lib/data/metrics";
-import { MISSION, MISSION_DAY } from "@/lib/data/mission";
 import {
+  ASSESSMENTS,
   getAlerts,
   getDaily,
   getDelta,
   getLatestAll,
   getLatestVitals,
+  getMetric,
   getRadiationSummary,
   getReadingsInWindow,
-} from "@/lib/data/vitals";
-import { formatMetricValue, formatRelative } from "@/lib/health/format";
+  METRICS,
+  MISSION_DAY,
+  PRIMARY_VITAL_IDS,
+  TRENDABLE_IDS,
+} from "@/lib/data";
+import { formatMetricValue } from "@/lib/health/format";
 import { worstLevel } from "@/lib/health/levels";
 import type { HealthLevel, LatestReading } from "@/types";
 
@@ -101,30 +104,28 @@ export function BiometricsScreen() {
     <div className="space-y-3">
       <PageHeader
         index="02"
-        section="Biometric overview"
-        title="Vitals, trends and thresholds"
-        description="Every recorded indicator with its configured reference range. Select a card to drive the trend chart below."
+        section="Vitals"
+        title="Your vitals"
+        description="Latest readings and trends. Pick a card to change the chart."
         meta={
           <>
             <Chip tone="accent">{subject.name}</Chip>
             <Chip>Flight day {MISSION_DAY}</Chip>
-            <Chip>{allLatest.length} indicators</Chip>
-            <Chip tone="muted">Snapshot · {formatRelative(MISSION.now, MISSION.now)}</Chip>
+            <Chip>{allLatest.length} readings</Chip>
           </>
         }
         actions={
           <>
             <Button href="/digital-human" variant="outline" size="sm">
-              <ScanLine className="size-3" /> Explore body
+              <ScanLine className="size-3" /> Body map
             </Button>
             <Button href="/assessment" variant="primary" size="sm">
-              <ClipboardCheck className="size-3" /> New assessment
+              <ClipboardCheck className="size-3" /> Health check
             </Button>
           </>
         }
       />
 
-      {/* primary metric cards */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         {cards.map((card) => (
           <MetricCard
@@ -140,12 +141,11 @@ export function BiometricsScreen() {
         ))}
       </div>
 
-      {/* chart + status */}
       <div className="grid gap-2.5 xl:grid-cols-12">
         <Panel
           className="xl:col-span-8"
-          label="Vitals / trend"
-          title={`${metric.label} over time`}
+          label="Trend"
+          title={metric.label}
           corners
           flush
           action={<Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} ariaLabel="Time range" />}
@@ -173,7 +173,7 @@ export function BiometricsScreen() {
           </div>
 
           <div className="scroll-thin overflow-x-auto border-b border-line/50 px-3 py-1.5">
-            <Segmented options={TREND_OPTIONS} value={metricId} onChange={setMetricId} ariaLabel="Indicator" />
+            <Segmented options={TREND_OPTIONS} value={metricId} onChange={setMetricId} ariaLabel="Reading" />
           </div>
 
           <div className="px-1.5 pb-2 pt-2">
@@ -182,11 +182,9 @@ export function BiometricsScreen() {
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 px-3.5 py-1.5">
             <span className="inline-flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.1em] text-dim">
-              <span className="h-1.5 w-4 rounded-full bg-aurora/30" /> Normal band
+              <span className="h-1.5 w-4 rounded-full bg-aurora/30" /> Normal range
             </span>
-            <span className="font-mono text-[8.5px] text-dim">
-              {readings.length} samples · hourly resolution · configured thresholds
-            </span>
+            <span className="font-mono text-[8.5px] text-dim">{readings.length} samples</span>
           </div>
         </Panel>
 
@@ -203,7 +201,6 @@ export function BiometricsScreen() {
         </div>
       </div>
 
-      {/* secondary panels */}
       <div className="grid gap-2.5 xl:grid-cols-12">
         <div className="xl:col-span-5">
           <RecentMeasurements readings={allLatest} />
@@ -216,21 +213,17 @@ export function BiometricsScreen() {
         </div>
       </div>
 
-      {/* provenance note */}
       <div className="panel flex items-start gap-2 px-3 py-2.5">
         <Info className="mt-px size-3.5 shrink-0 text-signal/70" />
         <p className="text-[10px] leading-relaxed text-mute">
-          Values shown are the demonstration snapshot exported from <code className="font-mono text-signal/80">health.db</code>.
-          Thresholds are the database&apos;s configured reference ranges, not NASA clinical limits, and every
-          reading carries a provenance tag: <span className="text-signal">SENSOR</span> (instrument),
-          <span className="text-mute"> RECORDED</span> (monitoring dataset), <span className="text-violet">SELF-REPORT</span>, or
-          <span className="text-amber"> MANUAL</span>. Nothing here diagnoses a condition.
+          Demo data, shown for information only. Ranges are configured for this mission, not clinical
+          limits.
         </p>
         <Link
           href="/assessment"
           className="ml-auto hidden shrink-0 items-center gap-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal hover:underline sm:flex"
         >
-          Assess <ArrowUpRight className="size-2.5" />
+          Health checks <ArrowUpRight className="size-2.5" />
         </Link>
       </div>
     </div>

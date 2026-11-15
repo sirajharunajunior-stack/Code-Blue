@@ -21,7 +21,7 @@ STATUS = {"normal": "normal", "slightly_abnormal": "normal",
 
 
 def worst(levels: Iterable[str]) -> str:
-    return max(levels, key=lambda l: CODE[l], default="normal")
+    return max(levels, key=lambda l: CODE.get(l, 0), default="normal")
 
 
 def _lt(v, lim):

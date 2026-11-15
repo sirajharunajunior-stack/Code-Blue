@@ -63,6 +63,22 @@ export function TrendChart({
 }) {
   const data: Point[] = readings.map((r) => ({ ts: r.ts, value: r.value, level: r.level }));
 
+  if (!data.length) {
+    return (
+      <div
+        style={{ height }}
+        className="grid place-items-center rounded-md border border-dashed border-line/70 bg-deep/20 px-4 text-center"
+      >
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-dim">No instrument series</p>
+          <p className="mt-1 text-[10.5px] text-mute">
+            No {metric.label.toLowerCase()} readings are recorded for this subject in the selected window.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const values = data.map((d) => d.value);
   const bounds = [metric.normalLo, metric.normalHi, metric.warnLow, metric.warnHigh]
     .filter((v): v is number => typeof v === "number");

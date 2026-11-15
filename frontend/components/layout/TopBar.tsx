@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Menu, Radio } from "lucide-react";
+import { Bell, ChevronDown, Menu } from "lucide-react";
 import { navItemFor } from "@/components/layout/nav";
 import { useCrew } from "@/components/providers/CrewProvider";
-import { getAlertCount } from "@/lib/data/vitals";
-import { MISSION } from "@/lib/data/mission";
+import { getAlertCount, MISSION } from "@/lib/data";
 import { formatClockSeconds } from "@/lib/health/format";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,7 +23,7 @@ export function MissionClock({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={cn("flex items-baseline gap-1.5", className)} title="Mission time (UTC), advancing from the dataset snapshot">
+    <div className={cn("flex items-baseline gap-1.5", className)} title="Mission time (UTC)">
       <span className="num text-[12px] text-ink/90">{formatClockSeconds(now)}</span>
       <span className="font-mono text-[8.5px] tracking-[0.14em] text-dim">UTC</span>
     </div>
@@ -33,7 +32,6 @@ export function MissionClock({ className }: { className?: string }) {
 
 function CrewSelect() {
   const { subjectId, setSubjectId, crew } = useCrew();
-  const active = crew.find((c) => c.id === subjectId) ?? crew[0];
 
   return (
     <label className="group relative flex items-center gap-2 rounded-md border border-line bg-deep/60 pl-2.5 pr-1.5 transition-colors hover:border-edge">
@@ -48,17 +46,16 @@ function CrewSelect() {
       >
         {crew.map((member) => (
           <option key={member.id} value={member.id} className="bg-void text-ink">
-            {member.name} · {member.id}
+            {member.name}
           </option>
         ))}
       </select>
       <ChevronDown className="pointer-events-none absolute right-1.5 size-3 text-dim" />
-      <span className="sr-only">{active.role}</span>
     </label>
   );
 }
 
-export function TopBar({ onMenu }: { onMenu: () => void }) {
+export function TopBar({ onMenu, menuOpen }: { onMenu: () => void; menuOpen: boolean }) {
   const pathname = usePathname();
   const active = navItemFor(pathname);
   const { subjectId } = useCrew();
@@ -71,6 +68,8 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
           type="button"
           onClick={onMenu}
           aria-label="Open navigation"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
           className="rounded-md border border-line p-1.5 text-mute transition-colors hover:border-edge hover:text-ink lg:hidden"
         >
           <Menu className="size-4" />
@@ -82,13 +81,15 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
           <span className="truncate text-[12px] font-medium tracking-[0.04em] text-ink">
             {active.label}
           </span>
-          <span className="hidden truncate text-[10.5px] text-dim xl:block">/ {active.description}</span>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-1.5 rounded-md border border-aurora/25 bg-aurora/6 px-2 py-1 sm:flex">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-aurora" />
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-aurora/90">Live</span>
+          <span
+            className="hidden items-center gap-1.5 rounded-md border border-aurora/25 bg-aurora/6 px-2 py-1 sm:flex"
+            title="Bundled demonstration snapshot"
+          >
+            <span className="size-1.5 rounded-full bg-aurora/70" />
+            <span className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-aurora/90">Demo</span>
           </span>
 
           <MissionClock className="hidden md:flex" />
@@ -96,7 +97,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
           <Link
             href="/biometrics#alerts"
             className="relative flex items-center gap-1.5 rounded-md border border-line bg-deep/60 px-2 py-1.5 text-mute transition-colors hover:border-edge hover:text-ink"
-            aria-label={`${alerts} alerts`}
+            aria-label={`${alerts} recorded alerts`}
             title={`${alerts} recorded alerts`}
           >
             <Bell className="size-3.5" />
@@ -107,11 +108,6 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
           </Link>
 
           <CrewSelect />
-
-          <span className="hidden items-center gap-1 rounded-md border border-signal/25 bg-signal/6 px-1.5 py-1 font-mono text-[8.5px] tracking-[0.14em] text-signal/90 xl:flex">
-            <Radio className="size-3" />
-            LINK {MISSION.lightDelaySeconds}s
-          </span>
         </div>
       </div>
     </header>

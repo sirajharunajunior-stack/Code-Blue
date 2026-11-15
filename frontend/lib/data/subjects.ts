@@ -35,15 +35,6 @@ export const SUBJECTS: Subject[] = [
     missionDay: 214,
     careerLimit: 600,
   },
-  {
-    id: "local",
-    name: "Local sensors",
-    role: "Suit / habitat telemetry",
-    agency: "Habitat bus",
-    environment: "free_space",
-    missionDay: 214,
-    careerLimit: 600,
-  },
 ];
 
 export const DEFAULT_SUBJECT_ID = "A1";

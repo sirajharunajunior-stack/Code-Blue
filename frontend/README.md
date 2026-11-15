@@ -16,7 +16,7 @@ data layer.
 
 | Route            | Screen                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| `/`              | Platform overview — mission status, crew readiness, section index and the live design-system reference      |
+| `/`              | Overview — mission status, crew readiness and a short index of the five sections                              |
 | `/biometrics`    | Vitals cards, trend chart with range filters, alerts, recent measurements, daily sleep/exercise, radiation   |
 | `/digital-human` | Body schematic with seven hotspots and per-system panels, metrics and linked assessments                     |
 | `/assessment`    | Assessment library, due/recent status, multi-step form (React Hook Form + Zod), review, result, escalation   |
@@ -82,9 +82,12 @@ demo content and are not exported from the database.
 
 ## Swapping in the FastAPI backend
 
-UI components never read JSON directly. They call the repositories in
-`lib/data/vitals.ts`, `lib/data/metrics.ts` and `lib/data/subjects.ts`. Replace
-those function bodies with fetches to the existing endpoints:
+UI components import data only from `@/lib/data`. That barrel re-exports the
+selectors in `lib/data/vitals.ts`, `lib/data/metrics.ts`, `lib/data/subjects.ts`
+and the mission/content definitions. The selectors are synchronous today; a live
+swap means loading the same shapes asynchronously (server components or a query
+hook) and mapping the API responses onto `types/`. Screens still depend only on
+the barrel, so the change stays inside `lib/data` plus one loading boundary.
 
 | Data                       | Endpoint                          |
 | -------------------------- | --------------------------------- |
@@ -106,7 +109,7 @@ single place to add a write endpoint.
 app/                 routes + metadata (server components only)
 components/
   layout/            shell, sidebar, top bar, page header, mission clock
-  overview/          mission/crew panels, section index, design-system section
+  overview/          mission/crew panels and section index
   biometrics/        metric cards, alerts, measurement table, daily + radiation
   anatomy/           body schematic, system panel and system cards
   assessment/        library, cards, multi-step runner
@@ -124,12 +127,13 @@ types/               shared domain types
 ## Interaction notes
 
 - Every control is functional: filters, crew switching, modal journeys, chart
-  metric/range pickers, hazard countermeasure filters and the design-system
-  previews all update state.
+  metric/range pickers and hazard countermeasure filters all update state.
 - Cross-page deep links use `sessionStorage` (`astra:focus-assessment`,
   `astra:focus-system`, `astra:focus-hazard`) and fall back to the default
   selection when the target is unknown.
 - Charts have labelled axes, units and tooltips; when a hazard has no reliable
-  time series the panel shows an explicit "no instrument series" fallback rather
+  time series the panel explains that it is tracked through a health check rather
   than inventing a chart.
+- The assessment modal traps and restores keyboard focus, closes on Escape and
+  is labelled for screen readers. The mobile navigation behaves the same way.
 - Colour is never the only signal: levels also carry text labels and icons.

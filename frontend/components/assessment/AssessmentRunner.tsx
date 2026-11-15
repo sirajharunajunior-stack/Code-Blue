@@ -20,11 +20,9 @@ import { LevelBadge, SourceTag } from "@/components/ui/Badge";
 import { FieldShell, ScaleField, ToggleField, inputClass, textareaClass } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 import { useAssessments } from "@/lib/assessment-store";
-import { getMetric } from "@/lib/data/metrics";
-import { classifyValue } from "@/lib/data/vitals";
+import { classifyValue, getMetric, MISSION } from "@/lib/data";
 import { formatMetricValue, formatRelative } from "@/lib/health/format";
 import { LEVELS } from "@/lib/health/levels";
-import { MISSION } from "@/lib/data/mission";
 import { cn } from "@/lib/utils/cn";
 import type {
   AssessmentAnswer,
@@ -310,8 +308,8 @@ export function AssessmentRunner({
           <div className="flex items-start gap-1.5 rounded-md border border-line/70 bg-panel-2/40 p-2">
             <Info className="mt-px size-3 shrink-0 text-dim" />
             <p className="text-[9.5px] leading-relaxed text-dim">
-              You can stop at any point. Nothing is saved until you confirm on the review step. Values you enter
-              are tagged as <span className="text-violet">SELF-REPORT</span> or <span className="text-amber">MANUAL</span> data.
+              You can stop at any point. Nothing is saved until you confirm on the review step. Entries you
+              type are saved as self-reported data.
             </p>
           </div>
         </div>
@@ -352,7 +350,7 @@ export function AssessmentRunner({
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 rounded-md border border-line/70 bg-deep/40 p-2.5">
             <div>
-              <div className="label-tech mb-0.5">Provisional result</div>
+              <div className="label-tech mb-0.5">Result so far</div>
               <p className={cn("text-[12px] font-medium", LEVELS[worstLevel].text)}>
                 {LEVELS[worstLevel].label}
               </p>
@@ -362,7 +360,7 @@ export function AssessmentRunner({
           </div>
 
           <div>
-            <div className="label-tech mb-1.5">Values you entered</div>
+            <div className="label-tech mb-1.5">Your answers</div>
             <ul className="space-y-1">
               {allAnswers.map((answer) => {
                 const field = assessment.steps.flatMap((s) => s.fields).find((f) => f.id === answer.fieldId);
@@ -413,14 +411,14 @@ export function AssessmentRunner({
 
           <div className="rounded-md border border-amber/25 bg-amber/5 p-2.5">
             <div className="label-tech mb-1 flex items-center gap-1 text-amber/80">
-              <ShieldAlert className="size-2.5" /> Next steps & escalation
+              <ShieldAlert className="size-2.5" /> What happens next
             </div>
             <p className="text-[10.5px] leading-relaxed text-ink/80">{assessment.followUp}</p>
           </div>
 
           <div className="flex items-start gap-1.5 text-[9.5px] leading-relaxed text-dim">
             <AlertTriangle className="mt-px size-3 shrink-0" />
-            Submitting stores this entry as crew-reported data. It does not confirm or rule out any condition.
+            This entry is crew-reported data. It does not confirm or rule out any condition.
           </div>
         </div>
       )}
@@ -450,7 +448,7 @@ export function AssessmentRunner({
 
           {metricRows.length > 0 && (
             <div className="rounded-md border border-line/70 bg-deep/40 p-2.5">
-              <div className="label-tech mb-1.5">Classified values</div>
+              <div className="label-tech mb-1.5">Measured values</div>
               <ul className="space-y-1">
                 {metricRows.map((row) => (
                   <li key={row.field.id} className="flex items-center justify-between gap-2">
@@ -537,7 +535,7 @@ function FieldItem({
       unit={field.unit}
       error={error}
       required={field.required}
-      htmlFor={id}
+      htmlFor={field.type === "scale" ? undefined : id}
       className={className}
     >
       {field.type === "number" && (
@@ -562,6 +560,7 @@ function FieldItem({
           max={field.max ?? 10}
           labelLow={`${field.min ?? 0} · lowest`}
           labelHigh={`${field.max ?? 10} · highest`}
+          ariaLabel={field.label}
         />
       )}
 

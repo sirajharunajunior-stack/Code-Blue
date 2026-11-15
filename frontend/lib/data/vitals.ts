@@ -1,8 +1,9 @@
 import readingsJson from "@/lib/data/readings.json";
 import dailyJson from "@/lib/data/daily.json";
 import alertsJson from "@/lib/data/alerts.json";
-import { CAREER_LIMIT_MSV } from "@/lib/data/reference";
+import { CAREER_LIMIT_MSV, RAW_METRICS } from "@/lib/data/reference";
 import { getMetric, METRICS, PRIMARY_VITAL_IDS } from "@/lib/data/metrics";
+import { getSubject } from "@/lib/data/subjects";
 import { classify, worstLevel } from "@/lib/health/levels";
 import type {
   AlertRecord,
@@ -42,9 +43,11 @@ const ALERTS = alertsJson as unknown as RawAlert[];
 
 /* ------------------------------------------------------------------ clock */
 
-const ALL_TIMESTAMPS: number[] = Object.values(READINGS).flatMap((byMetric) =>
-  Object.values(byMetric).flatMap((points) => points.map((p) => p[0])),
-);
+const ALL_TIMESTAMPS: number[] = Object.entries(READINGS)
+  .filter(([subjectId]) => subjectId !== "local")
+  .flatMap(([, byMetric]) =>
+    Object.values(byMetric).flatMap((points) => points.map((p) => p[0])),
+  );
 
 /**
  * The newest timestamp in the demonstration dataset. Every "now" in the UI is
@@ -148,18 +151,18 @@ export function getFlagged(subjectId: string): LatestReading[] {
   return getLatestAll(subjectId).filter((r) => r.level !== "normal");
 }
 
-/** Change against the reading roughly `hours` earlier (or the first available). */
+/** Change against the reading roughly `hours` earlier. Null when the series does not reach that far back. */
 export function getDelta(subjectId: string, metricId: string, hours = 24): number | null {
   const series = getReadings(subjectId, metricId);
   if (series.length < 2) return null;
   const last = series[series.length - 1];
   const target = last.ts - hours * 3600;
-  let prior = series[0];
+  let prior: Reading | null = null;
   for (const r of series) {
     if (r.ts <= target) prior = r;
     else break;
   }
-  if (prior.ts === last.ts) return null;
+  if (!prior || prior.ts === last.ts) return null;
   return last.value - prior.value;
 }
 
@@ -197,7 +200,28 @@ export interface RadiationSummary {
   daily: DailyRecord[];
 }
 
-/** Mirrors `/api/radiation` in the backend. */
+/** Radiation rule configuration, read from the exported database rules. */
+function radiationRules(): {
+  maxByEnvironment: Record<string, number>;
+  spikeMultiple: number;
+} {
+  const raw = RAW_METRICS.find((metric) => metric.name === "radiation");
+  let extra: Record<string, unknown> = {};
+  try {
+    extra = (JSON.parse(raw?.extra ?? "{}") as Record<string, unknown>) ?? {};
+  } catch {
+    extra = {};
+  }
+  const maxByEnvironment =
+    (extra.max_by_environment as Record<string, number> | undefined) ?? {};
+  const spikeMultiple =
+    typeof extra.spike_multiple_of_baseline === "number"
+      ? extra.spike_multiple_of_baseline
+      : 2;
+  return { maxByEnvironment, spikeMultiple };
+}
+
+/** Mirrors `/api/radiation` in the backend, including environment-specific limits. */
 export function getRadiationSummary(subjectId: string): RadiationSummary {
   const daily = getDaily(subjectId);
   const doses = daily.map((d) => d.radiation).filter((d): d is number => d !== null);
@@ -208,6 +232,10 @@ export function getRadiationSummary(subjectId: string): RadiationSummary {
   const sorted = [...doses].sort((a, b) => a - b);
   const baseline = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
   const last = daily[daily.length - 1];
+  const rules = radiationRules();
+  const environment = getSubject(subjectId).environment;
+  const environmentMax =
+    rules.maxByEnvironment[environment] ?? getMetric("radiation").normalHi ?? 1.3;
 
   return {
     cumulative,
@@ -216,9 +244,9 @@ export function getRadiationSummary(subjectId: string): RadiationSummary {
     percentOfLimit: CAREER_LIMIT_MSV ? (cumulative / CAREER_LIMIT_MSV) * 100 : 0,
     avgDaily,
     projectedDaysToLimit: avgDaily ? Math.round(remaining / avgDaily) : null,
-    environmentMax: getMetric("radiation").normalHi ?? 1.3,
+    environmentMax,
     baseline,
-    spikeThreshold: baseline ? baseline * 2 : null,
+    spikeThreshold: baseline ? baseline * rules.spikeMultiple : null,
     levelToday: last ? last.levels.radiation : "normal",
     daily,
   };

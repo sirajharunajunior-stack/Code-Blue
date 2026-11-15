@@ -2,9 +2,8 @@
 
 import { ArrowRight, Clock3, Repeat } from "lucide-react";
 import { LevelBadge } from "@/components/ui/Badge";
-import { CATEGORY_LABELS } from "@/lib/data/assessments";
+import { CATEGORY_LABELS, MISSION } from "@/lib/data";
 import { formatRelative } from "@/lib/health/format";
-import { MISSION } from "@/lib/data/mission";
 import { cn } from "@/lib/utils/cn";
 import { dueWindowDays } from "@/lib/assessment-store";
 import type { AssessmentStatus } from "@/lib/assessment-store";

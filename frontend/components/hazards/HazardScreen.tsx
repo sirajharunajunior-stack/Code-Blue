@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Gauge, Info, Moon, Radiation, ShieldCheck, Zap } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -14,13 +14,24 @@ import { HazardContext } from "@/components/hazards/HazardContext";
 import { RadiationChart } from "@/components/charts/RadiationChart";
 import { DailyBars, TrendChart } from "@/components/charts/TrendChart";
 import { useCrew } from "@/components/providers/CrewProvider";
-import { BODY_SYSTEM_MAP, BODY_SYSTEMS } from "@/lib/data/bodySystems";
-import { DEFAULT_HAZARD_ID, HAZARDS } from "@/lib/data/hazards";
-import { getMetric, TRENDABLE_IDS } from "@/lib/data/metrics";
-import { FLIGHT_DAY_OFFSET, MISSION, MISSION_LIMITS } from "@/lib/data/mission";
-import { getDaily, getLatestMetric, getRadiationSummary, getReadingsInWindow } from "@/lib/data/vitals";
+import {
+  BODY_SYSTEM_MAP,
+  BODY_SYSTEMS,
+  DEFAULT_HAZARD_ID,
+  FLIGHT_DAY_OFFSET,
+  getDaily,
+  getLatestMetric,
+  getMetric,
+  getRadiationSummary,
+  getReadingsInWindow,
+  HAZARDS,
+  MISSION,
+  MISSION_LIMITS,
+  TRENDABLE_IDS,
+} from "@/lib/data";
 import { formatNumber } from "@/lib/health/format";
 import { LEVELS, worstLevel } from "@/lib/health/levels";
+import { takeSession } from "@/lib/utils/session";
 import { cn } from "@/lib/utils/cn";
 import type { BodySystemId, HazardId, HealthLevel } from "@/types";
 
@@ -57,12 +68,15 @@ export function HazardScreen() {
   const [metricId, setMetricId] = useState<string>("heart_rate");
   const [range, setRange] = useState<Range>(24);
   const [cadence, setCadence] = useState<CadenceFilter>("all");
+  const pendingFocus = useRef<string | null | undefined>(undefined);
 
   /* Deep link from the digital human's hazard chips. */
   useEffect(() => {
-    const focus = window.sessionStorage.getItem(FOCUS_KEY);
+    if (pendingFocus.current === undefined) {
+      pendingFocus.current = takeSession(FOCUS_KEY);
+    }
+    const focus = pendingFocus.current;
     if (!focus) return;
-    window.sessionStorage.removeItem(FOCUS_KEY);
     if (!HAZARDS.some((h) => h.id === focus)) return;
     const timer = window.setTimeout(() => setActiveId(focus as HazardId), 0);
     return () => window.clearTimeout(timer);
@@ -120,14 +134,14 @@ export function HazardScreen() {
     <div className="space-y-3">
       <PageHeader
         index="05"
-        section="Space hazards & countermeasures"
-        title="Five hazards, one countermeasure plan"
-        description="Long-duration flight exposes the crew to five distinct hazards. Select one to see how it affects the body, which indicators track it, and the countermeasures that reduce the risk."
+        section="Hazards"
+        title="What space puts at risk"
+        description="Five long-flight risks and the steps that reduce them."
         meta={
           <>
             <Chip tone="accent">{subject.name}</Chip>
-            <Chip>5 hazards</Chip>
-            <Chip>{HAZARDS.reduce((sum, h) => sum + h.countermeasures.length, 0)} countermeasures</Chip>
+            <Chip>5 risks</Chip>
+            <Chip>{HAZARDS.reduce((sum, h) => sum + h.countermeasures.length, 0)} protective steps</Chip>
             <Chip tone="muted">Solar activity · {MISSION.solarActivity}</Chip>
           </>
         }
@@ -137,7 +151,7 @@ export function HazardScreen() {
               Body map <ArrowUpRight className="size-3" />
             </Button>
             <Button href="/assessment" variant="primary" size="sm">
-              Assessments
+              Health checks
             </Button>
           </>
         }
@@ -166,15 +180,15 @@ export function HazardScreen() {
       <div className="grid gap-2.5 xl:grid-cols-12">
         <Panel
           className="xl:col-span-8"
-          label={isRadiation ? "Radiation / trend" : "Hazard / trend"}
+          label="Trend"
           title={
             isRadiation
-              ? "Daily dose & cumulative exposure"
+              ? "Daily and total dose"
               : activeMetric
-                ? `${activeMetric.label} over time`
+                ? activeMetric.label
                 : hasSleep || hasExercise
-                  ? "Daily sleep & exercise"
-                  : "Recorded evidence for this hazard"
+                  ? "Sleep & exercise"
+                  : "No live trend"
           }
           corners
           flush
@@ -285,14 +299,13 @@ export function HazardScreen() {
               <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
                 <Gauge className="size-5 text-dim" />
                 <p className="max-w-sm text-[11px] leading-relaxed text-mute">
-                  This hazard is tracked through self-reported assessment scores rather than a continuous
-                  instrument channel. The assessment record is the evidence trail.
+                  This risk is tracked through reported symptoms in a health check, not a live sensor.
                 </p>
                 <Link
                   href="/assessment"
                   className="inline-flex items-center gap-1 rounded-md border border-signal/35 bg-signal/8 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-signal transition-colors hover:bg-signal/16"
                 >
-                  Open assessments <ArrowUpRight className="size-2.5" />
+                  Open health checks <ArrowUpRight className="size-2.5" />
                 </Link>
               </div>
             )}
@@ -302,31 +315,30 @@ export function HazardScreen() {
             <span className="inline-flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.1em] text-dim">
               <Info className="size-2.5" />
               {isRadiation
-                ? "Configured career ceiling · demonstration doses"
+                ? "Example doses · configured career limit"
                 : activeMetric
-                  ? "Recorded telemetry · hourly resolution"
-                  : "Targets are configured demonstration values"}
+                  ? "Hourly readings"
+                  : "Example targets"}
             </span>
             <Link
               href="/biometrics"
               className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-mute hover:text-signal"
             >
-              Open biometrics
+              Vitals
             </Link>
           </div>
         </Panel>
 
         <Panel
           className="xl:col-span-4"
-          label="Countermeasures / plan"
-          title={`${hazard.name} countermeasures`}
+          title="Protective steps"
           flush
           action={
             <Segmented
               options={CADENCE_OPTIONS}
               value={cadence}
               onChange={setCadence}
-              ariaLabel="Countermeasure cadence"
+              ariaLabel="Step cadence"
             />
           }
         >
@@ -367,7 +379,7 @@ export function HazardScreen() {
             ))}
             {countermeasures.length === 0 && (
               <li className="px-3 py-6 text-center text-[10.5px] text-mute">
-                No countermeasures in this cadence for the selected hazard.
+                No steps in this cadence.
               </li>
             )}
           </ul>
@@ -376,7 +388,7 @@ export function HazardScreen() {
               {countermeasures.length} of {hazard.countermeasures.length} shown
             </span>
             <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="size-2.5" /> Guidance, not diagnosis
+              <ShieldCheck className="size-2.5" /> Guidance only
             </span>
           </div>
         </Panel>
@@ -385,10 +397,7 @@ export function HazardScreen() {
       <div className="panel flex items-start gap-2 px-3 py-2.5">
         <Info className="mt-px size-3.5 shrink-0 text-signal/70" />
         <p className="text-[10px] leading-relaxed text-mute">
-          The five-hazard framing follows published NASA human-spaceflight risk categories. The wording here
-          is a plain-language summary for a demonstration platform; exposure values, crew details and targets
-          are fictional. Nothing on this page diagnoses a condition or replaces the flight surgeon&apos;s
-          judgement.
+          Example exposure values. General spaceflight guidance, not a diagnosis.
         </p>
       </div>
     </div>

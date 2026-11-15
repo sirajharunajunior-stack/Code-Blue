@@ -68,7 +68,7 @@ Metrics with no lower limit (blood pressure, respiration, CO2) don't flag low va
 
 | Endpoint | What it returns |
 |---|---|
-| `GET /health` | service status and per-sensor status (never needs the token) |
+| `GET /api/health` | service status and per-sensor status (never needs the token) |
 | `GET /subjects`, `PUT /subjects/{id}/environment?value=free_space\|planetary_surface` | crew list; change radiation environment |
 | `GET /crew` | everyone at a glance, worst level first, with flagged metrics |
 | `GET /latest?subject=A1` | newest reading of each vital and the overall level |
@@ -107,6 +107,22 @@ Set `HM_SIMULATE=0` to make a missing sensor an error instead of falling back to
 `HM_DB`, `HM_MODEL`, `HM_HOST`, `HM_PORT`, `HM_API_TOKEN` (requires `X-API-Token` header), `HM_SAMPLER` (0 = no live sensors),
 `HM_SAMPLE_SECONDS`, `HM_SIMULATE`, `HM_RETENTION_DAYS` (live readings only; astronaut data is never deleted),
 `HM_ALERT_CONSECUTIVE`, `HM_ALERT_COOLDOWN_S`, `HM_BASELINE_Z`, `HM_CORS`.
+
+## Production notes
+
+* Run **one** Uvicorn process. The sampler owns the live sensor loop, so multiple
+  workers would record the same reading several times.
+* Set `HM_API_TOKEN` in any shared environment. Without it, every `/api` route is
+  readable by anyone who can reach the port. `GET /api/health` stays public for
+  liveness checks.
+* Keep the API behind a TLS reverse proxy and restrict `HM_CORS` to the deployed
+  frontend origin.
+* `HM_SIMULATE=1` is the default. Set it to `0` so a missing sensor is reported
+  as an error instead of silently substituting simulated values.
+* The sampler prunes only the `local` subject after `HM_RETENTION_DAYS`; astronaut
+  records are never deleted.
+* `/api/health` reports `sample_age_seconds`, `sampler_ok` and `sensors_ok`, so a
+  stuck sampler or failed sensor shows up as `degraded`.
 
 ## Tests
 

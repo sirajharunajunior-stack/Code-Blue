@@ -1,12 +1,14 @@
 "use client";
 
-import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Activity,
   Droplet,
   Gauge,
   HeartPulse,
+  Minus,
   Thermometer,
+  TrendingDown,
+  TrendingUp,
   Wind,
 } from "lucide-react";
 import { Sparkline } from "@/components/ui/Sparkline";
@@ -49,7 +51,7 @@ export function MetricCard({
   const metric: MetricDef = primary.metric;
   const Icon = ICONS[metric.id] ?? Activity;
   const meta = LEVELS[primary.level];
-  const Trend = delta === null ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+  const Trend = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
 
   return (
     <button

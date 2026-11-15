@@ -1,29 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
-  ClipboardCheck,
-  Clock3,
-  Info,
-  ShieldAlert,
-  Sparkles,
-} from "lucide-react";
+import { AlertTriangle, Info, ShieldAlert, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
-import { Chip, LevelBadge, LevelDot } from "@/components/ui/Badge";
+import { Chip } from "@/components/ui/Badge";
 import { AssessmentCard } from "@/components/assessment/AssessmentCard";
 import { AssessmentRunner } from "@/components/assessment/AssessmentRunner";
 import { useCrew } from "@/components/providers/CrewProvider";
 import { useAssessments, isAssessmentDue } from "@/lib/assessment-store";
-import { ASSESSMENTS, CATEGORY_LABELS } from "@/lib/data/assessments";
-import { MISSION } from "@/lib/data/mission";
+import { ASSESSMENTS, CATEGORY_LABELS, MISSION } from "@/lib/data";
 import { formatRelative } from "@/lib/health/format";
 import { LEVELS } from "@/lib/health/levels";
+import { takeSession } from "@/lib/utils/session";
 import { cn } from "@/lib/utils/cn";
 import type { AssessmentCategory } from "@/types";
 
@@ -46,12 +37,15 @@ export function AssessmentScreen() {
   const assessments = useAssessments(subjectId);
   const [filter, setFilter] = useState<Filter>("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const pendingFocus = useRef<string | null | undefined>(undefined);
 
-  /* A body-system or hazard panel can hand over an assessment to focus. */
+  /* A body-system or hazard panel can hand over a check to focus. */
   useEffect(() => {
-    const focus = window.sessionStorage.getItem(FOCUS_KEY);
+    if (pendingFocus.current === undefined) {
+      pendingFocus.current = takeSession(FOCUS_KEY);
+    }
+    const focus = pendingFocus.current;
     if (!focus) return;
-    window.sessionStorage.removeItem(FOCUS_KEY);
     if (!ASSESSMENTS.some((a) => a.id === focus)) return;
     const timer = window.setTimeout(() => setOpenId(focus), 0);
     return () => window.clearTimeout(timer);
@@ -74,8 +68,6 @@ export function AssessmentScreen() {
   const focused = ASSESSMENTS.find((a) => a.id === openId) ?? null;
   const defaultAssessment = ASSESSMENTS.find((a) => a.id === "sleep-mood") ?? ASSESSMENTS[0];
 
-  const recent = [...assessments.results].sort((a, b) => b.submittedAt - a.submittedAt).slice(0, 5);
-
   const nextDue =
     dueRows[0] ??
     [...statusRows]
@@ -86,15 +78,14 @@ export function AssessmentScreen() {
     <div className="space-y-3">
       <PageHeader
         index="04"
-        section="Guided clinical self-assessment"
-        title="Assessment queue"
-        description="Structured, step-by-step health checks. Every step states what to do, why it matters and what happens to the result — no free-text guessing."
+        section="Health checks"
+        title="Short guided checks"
+        description="Pick a check and follow the steps. Each one takes a few minutes."
         meta={
           <>
             <Chip tone="accent">{subject.name}</Chip>
-            <Chip>{ASSESSMENTS.length} assessments</Chip>
             <Chip tone={dueCount ? "default" : "muted"}>
-              {dueCount ? `${dueCount} due` : "All current"}
+              {dueCount ? `${dueCount} due` : "All up to date"}
             </Chip>
             <Chip tone="muted">{assessments.completedThisWeek} this week</Chip>
           </>
@@ -106,19 +97,15 @@ export function AssessmentScreen() {
             onClick={() => setOpenId(nextDue?.assessment.id ?? defaultAssessment.id)}
           >
             <Sparkles className="size-3" />
-            {nextDue
-              ? `${dueRows.length ? "Continue" : "Repeat"} ${nextDue.assessment.shortName}`
-              : "Start daily check"}
+            {nextDue ? `Start ${nextDue.assessment.shortName}` : "Start daily check"}
           </Button>
         }
       />
 
       <div className="grid gap-2.5 xl:grid-cols-12">
-        {/* ------------------------------------------------ assessment library */}
-        <div className="space-y-2.5 xl:col-span-8">
+        <div className="xl:col-span-8">
           <Panel
-            label="Library / filter"
-            title="Available assessments"
+            title="Available checks"
             flush
             action={
               <div className="scroll-thin -my-1 overflow-x-auto">
@@ -173,88 +160,19 @@ export function AssessmentScreen() {
               </AnimatePresence>
             </div>
             {visible.length === 0 && (
-              <p className="px-3 pb-3 text-[10.5px] text-mute">No assessments in this category.</p>
+              <p className="px-3 pb-3 text-[10.5px] text-mute">No checks in this category.</p>
             )}
           </Panel>
-
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <Panel label="Queue / cadence" title="What is due next" flush>
-              <ul className="divide-y divide-line/40">
-                {ASSESSMENTS.slice(0, 4).map((assessment) => {
-                  const status = assessments.statusFor(assessment.id);
-                  return (
-                    <li key={assessment.id} className="flex items-center gap-2 px-2.5 py-1.5">
-                      <LevelDot level={status.lastLevel ?? "normal"} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[10.5px] text-ink/90">{assessment.shortName}</p>
-                        <p className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-dim">
-                          {assessment.cadence}
-                        </p>
-                      </div>
-                      <span className="shrink-0 font-mono text-[8.5px] text-dim">
-                        {status.lastCompletedAt
-                          ? formatRelative(status.lastCompletedAt, MISSION.now)
-                          : "never"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(assessment.id)}
-                        className="shrink-0 rounded border border-line px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-mute transition-colors hover:border-signal/50 hover:text-signal"
-                      >
-                        Start
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Panel>
-
-            <Panel label="Progress / submissions" title="Recent submissions" flush>
-              {recent.length === 0 ? (
-                <div className="flex flex-col items-center gap-1.5 px-3 py-6 text-center">
-                  <ClipboardCheck className="size-4 text-dim" />
-                  <p className="text-[10.5px] text-mute">Nothing submitted in this session yet.</p>
-                  <p className="font-mono text-[8.5px] text-dim">
-                    Scheduled checks below show the demonstration record&apos;s last completion.
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-line/40">
-                  {recent.map((result, index) => {
-                    const definition = ASSESSMENTS.find((a) => a.id === result.assessmentId);
-                    return (
-                      <li
-                        key={`${result.assessmentId}-${result.submittedAt}-${index}`}
-                        className="flex items-center gap-2 px-2.5 py-1.5"
-                      >
-                        <CheckCircle2 className="size-3 shrink-0 text-aurora/80" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[10.5px] text-ink/90">
-                            {definition?.shortName ?? result.assessmentId}
-                          </p>
-                          <p className="font-mono text-[8.5px] text-dim">
-                            {formatRelative(result.submittedAt, MISSION.now)} · {result.answers.length} entries
-                          </p>
-                        </div>
-                        <LevelBadge level={result.level} size="xs" />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </Panel>
-          </div>
         </div>
 
-        {/* ------------------------------------------------ supporting panels */}
         <div className="space-y-2.5 xl:col-span-4">
-          <Panel label="Progress / week" title="Completion" corners>
+          <Panel title="This week" corners>
             <div className="flex items-baseline justify-between">
               <span className="num text-[26px] leading-none text-ink">
                 {assessments.completedThisWeek}
                 <span className="text-[14px] text-dim">/{ASSESSMENTS.length}</span>
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-dim">assessments</span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-dim">completed</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-deep/80">
               <div
@@ -287,32 +205,30 @@ export function AssessmentScreen() {
             </ul>
           </Panel>
 
-          <Panel label="Safety / escalation" title="Before you begin" corners>
+          <Panel title="Before you start" corners>
             <ul className="space-y-2">
               <li className="flex gap-2">
                 <Info className="mt-px size-3 shrink-0 text-signal/80" />
                 <p className="text-[10px] leading-relaxed text-mute">
-                  Answer for the last 24 hours unless the step says otherwise. Estimates are acceptable —
-                  record what actually happened.
+                  Answer for the last 24 hours unless the step says otherwise.
                 </p>
               </li>
               <li className="flex gap-2">
                 <AlertTriangle className="mt-px size-3 shrink-0 text-amber" />
                 <p className="text-[10px] leading-relaxed text-mute">
-                  A guided assessment classifies values against configured reference ranges. It does not
-                  diagnose a condition and does not replace the flight surgeon.
+                  Checks compare values with configured ranges. They do not diagnose a condition.
                 </p>
               </li>
               <li className="flex gap-2">
                 <ShieldAlert className="mt-px size-3 shrink-0 text-danger" />
                 <p className="text-[10px] leading-relaxed text-mute">
-                  Chest pain, breathlessness at rest, fainting, new vision loss or thoughts of self-harm are
-                  immediate escalations — contact the flight surgeon and open the emergency checklist now.
+                  Chest pain, breathlessness at rest, fainting, new vision loss or thoughts of self-harm
+                  need the flight surgeon now.
                 </p>
               </li>
             </ul>
             <div className="mt-2.5 rounded-md border border-line/70 bg-deep/40 p-2">
-              <div className="label-tech mb-1">Recorded findings</div>
+              <div className="label-tech mb-1">How results are marked</div>
               <div className="flex flex-wrap gap-1">
                 {(["normal", "slightly_abnormal", "needs_checkup", "critical"] as const).map((level) => (
                   <span key={level} className="inline-flex items-center gap-1 font-mono text-[8px] text-dim">
@@ -321,21 +237,6 @@ export function AssessmentScreen() {
                   </span>
                 ))}
               </div>
-            </div>
-          </Panel>
-
-          <Panel label="Link / explorer" title="Not sure which to run?" action={<Clock3 className="size-3 text-dim" />}>
-            <p className="text-[10.5px] leading-relaxed text-mute">
-              Pick a body system in the digital human explorer to see the indicators it tracks and the
-              assessment that covers it.
-            </p>
-            <div className="mt-2 flex gap-1.5">
-              <Button href="/digital-human" variant="outline" size="sm" className="flex-1">
-                Open body map <ArrowUpRight className="size-3" />
-              </Button>
-              <Button href="/biometrics" variant="subtle" size="sm" className="flex-1">
-                View vitals
-              </Button>
             </div>
           </Panel>
         </div>

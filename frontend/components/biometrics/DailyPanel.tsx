@@ -3,7 +3,7 @@ import { ArrowUpRight, Moon, Dumbbell } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { LevelBadge } from "@/components/ui/Badge";
 import { DailyBars } from "@/components/charts/TrendChart";
-import { MISSION_LIMITS, FLIGHT_DAY_OFFSET } from "@/lib/data/mission";
+import { MISSION_LIMITS, FLIGHT_DAY_OFFSET } from "@/lib/data";
 import { formatNumber } from "@/lib/health/format";
 import type { DailyRecord } from "@/types";
 
@@ -21,7 +21,6 @@ export function DailyPanel({ daily }: { daily: DailyRecord[] }) {
 
   return (
     <Panel
-      label="Daily / countermeasures"
       title="Sleep & exercise"
       action={
         <Link
@@ -78,7 +77,7 @@ export function DailyPanel({ daily }: { daily: DailyRecord[] }) {
         </div>
       </div>
       <p className="mt-1.5 font-mono text-[8.5px] leading-snug text-dim">
-        Targets are configured demonstration values · last 7 flight days
+        Last 7 flight days · targets are example values
       </p>
     </Panel>
   );

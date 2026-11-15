@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -29,8 +29,14 @@ const TONE: Record<ToastTone, { icon: React.ElementType; className: string }> = 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
+  const timers = useRef(new Map<number, number>());
 
   const dismiss = useCallback((id: number) => {
+    const timer = timers.current.get(id);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      timers.current.delete(id);
+    }
     setToasts((current) => current.filter((t) => t.id !== id));
   }, []);
 
@@ -38,17 +44,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     ({ title, description, tone = "info" }: { title: string; description?: string; tone?: ToastTone }) => {
       const id = nextId.current++;
       setToasts((current) => [...current.slice(-2), { id, title, description, tone }]);
-      window.setTimeout(() => dismiss(id), 6000);
+      const timer = window.setTimeout(() => dismiss(id), 6000);
+      timers.current.set(id, timer);
     },
     [dismiss],
   );
+
+  useEffect(() => {
+    const active = timers.current;
+    return () => {
+      for (const timer of active.values()) window.clearTimeout(timer);
+      active.clear();
+    };
+  }, []);
 
   const value = useMemo(() => ({ push }), [push]);
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2"
+      >
         <AnimatePresence initial={false}>
           {toasts.map((toast) => {
             const tone = TONE[toast.tone];

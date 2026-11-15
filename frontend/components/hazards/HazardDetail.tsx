@@ -5,7 +5,8 @@ import { ArrowUpRight, Check, Info, ShieldCheck } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { LevelDot } from "@/components/ui/Badge";
-import { BODY_SYSTEM_MAP } from "@/lib/data/bodySystems";
+import { BODY_SYSTEM_MAP } from "@/lib/data";
+import { writeSession } from "@/lib/utils/session";
 import { cn } from "@/lib/utils/cn";
 import type { BodySystemId, Hazard, HealthLevel } from "@/types";
 
@@ -39,27 +40,26 @@ export function HazardDetail({
   const router = useRouter();
 
   const openSystem = (id: BodySystemId) => {
-    window.sessionStorage.setItem("astra:focus-system", id);
+    writeSession("astra:focus-system", id);
     router.push("/digital-human");
   };
 
   return (
     <Panel
-      label="Hazard / detail"
       title={hazard.name}
       description={hazard.tagline}
       corners
       flush
-      action={<CadenceBadge cadence={`${hazard.countermeasures.length} countermeasures`} />}
+      action={<span className="chip border-line/60 text-dim">{hazard.countermeasures.length} steps</span>}
     >
       <div className="scroll-thin max-h-[640px] space-y-3.5 overflow-y-auto p-3.5">
         <div>
-          <div className="label-tech mb-1">What it means</div>
+          <div className="label-tech mb-1">What it is</div>
           <p className="text-[11.5px] leading-relaxed text-ink/85">{hazard.what}</p>
         </div>
 
         <div>
-          <div className="label-tech mb-1.5">How it affects the astronaut</div>
+          <div className="label-tech mb-1.5">How it affects the body</div>
           <ul className="space-y-1">
             {hazard.howItAffects.map((effect) => (
               <li key={effect} className="flex gap-1.5 text-[10.5px] leading-relaxed text-mute">
@@ -71,7 +71,7 @@ export function HazardDetail({
         </div>
 
         <div>
-          <div className="label-tech mb-1.5">Body systems involved</div>
+          <div className="label-tech mb-1.5">Body areas</div>
           <div className="flex flex-wrap gap-1">
             {hazard.affectedSystems.map((id) => {
               const system = BODY_SYSTEM_MAP[id];
@@ -94,7 +94,7 @@ export function HazardDetail({
 
         <div className="grid gap-2.5 sm:grid-cols-2">
           <div className="rounded-md border border-line/70 bg-deep/40 p-2.5">
-            <div className="label-tech mb-1.5">Potential consequences</div>
+            <div className="label-tech mb-1.5">Risks</div>
             <ul className="space-y-1">
               {hazard.consequences.map((item) => (
                 <li key={item} className="flex gap-1.5 text-[10px] leading-snug text-mute">
@@ -106,7 +106,7 @@ export function HazardDetail({
           </div>
 
           <div className="rounded-md border border-aurora/20 bg-aurora/4 p-2.5">
-            <div className="label-tech mb-1.5 text-aurora/80">Prevention strategies</div>
+            <div className="label-tech mb-1.5 text-aurora/80">Prevention</div>
             <ul className="space-y-1">
               {hazard.prevention.map((item) => (
                 <li key={item} className="flex gap-1.5 text-[10px] leading-snug text-mute">
@@ -121,9 +121,9 @@ export function HazardDetail({
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <div className="label-tech flex items-center gap-1">
-              <ShieldCheck className="size-2.5" /> Countermeasures
+              <ShieldCheck className="size-2.5" /> Protective steps
             </div>
-            <span className="font-mono text-[8.5px] text-dim">select to expand</span>
+            <span className="font-mono text-[8.5px] text-dim">tap to open</span>
           </div>
           <div className="space-y-1">
             {hazard.countermeasures.map((countermeasure) => (
@@ -147,10 +147,7 @@ export function HazardDetail({
 
         <div className="flex items-start gap-1.5 border-t border-line/60 pt-2 text-[9px] leading-snug text-dim">
           <Info className="mt-px size-3 shrink-0" />
-          <span>
-            Countermeasure wording is a plain-language summary for demonstration. Follow the mission
-            flight rules and the flight surgeon for any clinical decision.
-          </span>
+          <span>General guidance for this demonstration. Follow mission rules and the flight surgeon.</span>
         </div>
       </div>
     </Panel>

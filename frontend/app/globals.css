@@ -227,6 +227,9 @@
 
 .animate-pulse-dot {
   animation: astra-pulse 2.4s ease-in-out infinite;
+  /* Scale about the dot itself; the default SVG origin is the viewBox corner. */
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .animate-sweep {

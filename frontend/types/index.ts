@@ -27,7 +27,6 @@ export type BodySystemId =
   | "heart"
   | "lungs"
   | "digestive"
-  | "kidneys"
   | "bones"
   | "muscles";
 
@@ -119,8 +118,8 @@ export interface BodySystem {
   id: BodySystemId;
   label: string;
   shortLabel: string;
-  /** Where the region sits on the schematic, 0–100 viewBox coordinates. */
-  region: { cx: number; cy: number; rx: number; ry: number };
+  /** Where the system sits on the figure, in the 200 × 400 schematic viewBox. */
+  region: { cx: number; cy: number };
   summary: string;
   function: string;
   /** What long-duration spaceflight does to this system. */

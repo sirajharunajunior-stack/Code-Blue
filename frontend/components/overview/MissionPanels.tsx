@@ -5,9 +5,7 @@ import {
   ArrowUpRight,
   Check,
   Compass,
-  Globe,
   Radio,
-  Satellite,
   Sun,
   Thermometer,
 } from "lucide-react";
@@ -16,19 +14,20 @@ import { DemoTag, LevelBadge } from "@/components/ui/Badge";
 import { useCrew } from "@/components/providers/CrewProvider";
 import { NAV_ITEMS } from "@/components/layout/nav";
 import { useToast } from "@/components/ui/Toast";
-import { BODY_SYSTEMS } from "@/lib/data/bodySystems";
-import { ASSESSMENTS } from "@/lib/data/assessments";
-import { HAZARDS } from "@/lib/data/hazards";
-import { MISSION, MISSION_DAY } from "@/lib/data/mission";
-import { getCrew } from "@/lib/data/subjects";
-import { getLatestFor, getLatestMetric, getSubjectSummary, getFlagged } from "@/lib/data/vitals";
+import {
+  BODY_SYSTEMS,
+  getFlagged,
+  getLatestFor,
+  getLatestMetric,
+  getSubjectSummary,
+  MISSION,
+  MISSION_DAY,
+} from "@/lib/data";
 import {
   formatDistanceKm,
   formatLightDelay,
   formatMetricValue,
-  formatMissionElapsed,
   formatNumber,
-  formatRelative,
 } from "@/lib/health/format";
 import { LEVELS } from "@/lib/health/levels";
 import { cn } from "@/lib/utils/cn";
@@ -48,38 +47,30 @@ export function MissionStatusPanel() {
 
   return (
     <Panel
-      label="Mission / status"
       title={MISSION.name}
       corners
-      action={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-aurora/30 bg-aurora/6 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.12em] text-aurora">
-          <span className="size-1.5 animate-pulse-dot rounded-full bg-aurora" />
-          Transmitting
-        </span>
-      }
+      action={<DemoTag />}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <p className="text-[13px] text-ink/90">{MISSION.vehicle}</p>
         <span className="h-2.5 w-px bg-line" />
-        <p className="text-[10.5px] text-mute">{MISSION.profile}</p>
+        <p className="text-[10.5px] text-mute">Flight day {MISSION_DAY}</p>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+      <dl className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
           {
             icon: Compass,
-            label: "Mission elapsed",
-            value: formatMissionElapsed(MISSION.now - MISSION.launch),
-          },
-          { icon: Satellite, label: "Flight day", value: String(MISSION_DAY) },
-          {
-            icon: Globe,
             label: "Destination",
             value: MISSION.destination.split(" — ")[0],
             hint: MISSION.destination,
           },
-          { icon: Thermometer, label: "Range from Earth", value: formatDistanceKm(MISSION.distanceFromEarthKm) },
-          { icon: Radio, label: "One-way light time", value: formatLightDelay(MISSION.lightDelaySeconds) },
+          {
+            icon: Thermometer,
+            label: "From Earth",
+            value: formatDistanceKm(MISSION.distanceFromEarthKm),
+          },
+          { icon: Radio, label: "Signal delay", value: formatLightDelay(MISSION.lightDelaySeconds) },
           { icon: Sun, label: "Solar activity", value: MISSION.solarActivity, tone: solar.text },
         ].map(({ icon: Icon, label, value, hint, tone }) => (
           <div key={label} className="rounded-md border border-line/70 bg-deep/40 px-2 py-1.5" title={hint}>
@@ -95,7 +86,7 @@ export function MissionStatusPanel() {
       <div className="mt-3">
         <div className="flex items-center justify-between font-mono text-[8.5px] uppercase tracking-[0.1em] text-dim">
           <span>Earth</span>
-          <span className="text-signal/80">{formatNumber(progress, 1)}% transit complete</span>
+          <span className="text-signal/80">{formatNumber(progress, 1)}% of journey</span>
           <span>Mars</span>
         </div>
         <div className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-deep/80">
@@ -106,26 +97,17 @@ export function MissionStatusPanel() {
           />
           <div className="absolute inset-y-0 w-px bg-ink/70" style={{ left: `${progress}%` }} />
         </div>
-        <p className="mt-1 font-mono text-[8px] leading-snug text-dim">
-          Transit progress is a demonstration figure derived from the current range and planned leg distance.
-        </p>
       </div>
     </Panel>
   );
 }
 
 export function CrewStatusPanel() {
-  const { subjectId, setSubjectId } = useCrew();
+  const { subjectId, setSubjectId, crew } = useCrew();
   const { push } = useToast();
-  const crew = getCrew();
 
   return (
-    <Panel
-      label="Crew / roster"
-      title={`${crew.length} crew aboard`}
-      action={<DemoTag />}
-      flush
-    >
+    <Panel title={`Crew · ${crew.length} aboard`} action={<DemoTag />} flush>
       <ul className="divide-y divide-line/40">
         {crew.map((member) => {
           const summary = getSubjectSummary(member.id);
@@ -136,11 +118,7 @@ export function CrewStatusPanel() {
                 type="button"
                 onClick={() => {
                   setSubjectId(member.id);
-                  push({
-                    title: `Viewing ${member.name}`,
-                    description: "Active crew member updated across every screen.",
-                    tone: "info",
-                  });
+                  push({ title: `Viewing ${member.name}`, tone: "info" });
                 }}
                 className={cn(
                   "flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors",
@@ -171,7 +149,7 @@ export function CrewStatusPanel() {
                   <span className="mt-0.5 block font-mono text-[8px] text-dim">
                     {summary.flagged.length
                       ? `${summary.flagged.length} flagged`
-                      : `${summary.latest.length} clear`}
+                      : "All clear"}
                   </span>
                 </span>
               </button>
@@ -180,15 +158,12 @@ export function CrewStatusPanel() {
         })}
       </ul>
 
-      <div className="flex items-center justify-between gap-2 border-t border-line/60 px-2.5 py-1.5">
-        <span className="font-mono text-[8px] text-dim">
-          {formatRelative(MISSION.now, MISSION.now)} · demo snapshot
-        </span>
+      <div className="flex items-center justify-end border-t border-line/60 px-2.5 py-1.5">
         <Link
           href="/biometrics"
           className="inline-flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-mute hover:text-signal"
         >
-          Crew vitals <ArrowUpRight className="size-2.5" />
+          View vitals <ArrowUpRight className="size-2.5" />
         </Link>
       </div>
     </Panel>
@@ -205,37 +180,32 @@ export function SectionIndex() {
       return latest && latest.level !== "normal";
     }),
   ).length;
-  const countermeasures = HAZARDS.reduce((sum, hazard) => sum + hazard.countermeasures.length, 0);
 
   const stats: Record<string, { value: string; label: string; tone?: string }> = {
-    "/": { value: `${MISSION_DAY}d`, label: "mission elapsed" },
+    "/": { value: `${MISSION_DAY}d`, label: "mission" },
     "/biometrics": {
       value: heart ? formatMetricValue(heart.metric, heart.value) : "—",
-      label: `${flagged.length} flagged readings`,
+      label: `${flagged.length} flagged`,
       tone: heart ? LEVELS[heart.level].text : undefined,
     },
     "/digital-human": {
       value: `${BODY_SYSTEMS.length - flaggedSystems}/${BODY_SYSTEMS.length}`,
-      label: "systems within range",
+      label: "systems OK",
       tone: flaggedSystems ? "text-amber" : "text-aurora",
     },
-    "/assessment": { value: `${ASSESSMENTS.length}`, label: "guided checks" },
-    "/hazards": { value: `${HAZARDS.length}`, label: `${countermeasures} countermeasures` },
+    "/assessment": { value: "Guided", label: "self-checks" },
+    "/hazards": { value: "5", label: "risks" },
   };
 
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <div className="flex items-center gap-2">
-          <span className="label-tech">Platform map</span>
-          <span className="h-2.5 w-px bg-line" />
-          <span className="font-mono text-[8.5px] text-dim">five sections, one shell</span>
-        </div>
+        <span className="label-tech">Explore</span>
         <Link
           href="/hazards"
           className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-mute hover:text-signal"
         >
-          Explore hazards
+          Open hazards
         </Link>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
@@ -278,32 +248,6 @@ export function SectionIndex() {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-/** Compact strip of mission-wide numbers used under the hero. */
-export function SnapshotStrip() {
-  const { subjectId } = useCrew();
-  const summary = getSubjectSummary(subjectId);
-  const crew = getCrew();
-  const flaggedAll = crew.reduce((sum, member) => sum + getFlagged(member.id).length, 0);
-
-  const items = [
-    { label: "Indicators tracked", value: String(summary.latest.length), hint: "Vital channels recorded for the active crew member" },
-    { label: "Flagged across crew", value: String(flaggedAll), hint: "Latest readings outside the configured normal range" },
-    { label: "Assessments", value: String(ASSESSMENTS.length), hint: "Guided checks available in this build" },
-    { label: "Countermeasures", value: String(HAZARDS.reduce((sum, h) => sum + h.countermeasures.length, 0)), hint: "Mapped to the five flight hazards" },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {items.map((item) => (
-        <div key={item.label} className="panel px-3 py-2" title={item.hint}>
-          <div className="label-tech text-[8px]">{item.label}</div>
-          <div className="num mt-1 text-[17px] leading-none text-ink">{item.value}</div>
-        </div>
-      ))}
     </div>
   );
 }

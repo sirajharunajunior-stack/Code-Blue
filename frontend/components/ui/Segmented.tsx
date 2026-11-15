@@ -28,7 +28,7 @@ export function Segmented<T extends string | number>({
 }: SegmentedProps<T>) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={ariaLabel}
       className={cn(
         "inline-flex items-center gap-0.5 rounded-md border border-line bg-deep/60 p-0.5",
@@ -40,8 +40,8 @@ export function Segmented<T extends string | number>({
         return (
           <button
             key={String(option.value)}
-            role="tab"
-            aria-selected={active}
+            type="button"
+            aria-pressed={active}
             title={option.hint}
             onClick={() => onChange(option.value)}
             className={cn(

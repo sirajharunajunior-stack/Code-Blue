@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { DEFAULT_SUBJECT_ID, getCrew, getSubject } from "@/lib/data/subjects";
+import { DEFAULT_SUBJECT_ID, getCrew, getSubject } from "@/lib/data";
 import type { Subject } from "@/types";
 
 interface CrewContextValue {
@@ -24,7 +24,13 @@ export function CrewProvider({ children }: { children: React.ReactNode }) {
   const [subjectId, setSubjectIdState] = useState(DEFAULT_SUBJECT_ID);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(STORAGE_KEY);
+    } catch {
+      /* Storage can be unavailable in private browsing or hardened deployments. */
+      return;
+    }
     if (!stored || !getCrew().some((s) => s.id === stored)) return;
     /* Deferred so the restore is a background update rather than an effect that
        immediately cascades a second render. */
@@ -34,7 +40,11 @@ export function CrewProvider({ children }: { children: React.ReactNode }) {
 
   const setSubjectId = useCallback((id: string) => {
     setSubjectIdState(id);
-    window.localStorage.setItem(STORAGE_KEY, id);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, id);
+    } catch {
+      /* Keep the in-memory selection even if it cannot be persisted. */
+    }
   }, []);
 
   const value = useMemo<CrewContextValue>(

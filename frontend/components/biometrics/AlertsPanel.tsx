@@ -4,16 +4,14 @@ import { Panel } from "@/components/ui/Panel";
 import { LevelBadge } from "@/components/ui/Badge";
 import { LEVELS } from "@/lib/health/levels";
 import { formatNumber, formatRelative } from "@/lib/health/format";
-import { getMetric } from "@/lib/data/metrics";
-import { MISSION } from "@/lib/data/mission";
+import { getMetric, MISSION } from "@/lib/data";
 import { cn } from "@/lib/utils/cn";
 import type { AlertRecord } from "@/types";
 
 export function AlertsPanel({ alerts }: { alerts: AlertRecord[] }) {
   return (
     <Panel
-      label="Alerts / recent"
-      title="Threshold alerts"
+      title="Recent alerts"
       id="alerts"
       action={
         <Link
@@ -27,7 +25,7 @@ export function AlertsPanel({ alerts }: { alerts: AlertRecord[] }) {
       {alerts.length === 0 ? (
         <div className="flex flex-col items-center gap-1.5 py-5 text-center">
           <BellOff className="size-4 text-dim" />
-          <p className="text-[10.5px] text-mute">No alerts recorded in this window.</p>
+          <p className="text-[10.5px] text-mute">No alerts in this window.</p>
         </div>
       ) : (
         <ul className="space-y-1">
@@ -52,14 +50,9 @@ export function AlertsPanel({ alerts }: { alerts: AlertRecord[] }) {
                   </div>
                   <div className="mt-0.5 flex items-center justify-between gap-1.5">
                     <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.08em] text-dim">
-                      {formatRelative(alert.ts, MISSION.now)} · {alert.subject}
+                      {formatRelative(alert.ts, MISSION.now)}
                     </span>
-                    <span className="flex shrink-0 items-center gap-1">
-                      <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-dim">
-                        {alert.source}
-                      </span>
-                      <LevelBadge level={alert.level} size="xs" showDot={false} />
-                    </span>
+                    <LevelBadge level={alert.level} size="xs" showDot={false} />
                   </div>
                 </div>
               </li>
@@ -68,8 +61,7 @@ export function AlertsPanel({ alerts }: { alerts: AlertRecord[] }) {
         </ul>
       )}
       <p className="mt-2 border-t border-line/50 pt-2 text-[9px] leading-snug text-dim">
-        Alerts reproduce the backend rule set: critical immediately, needs check-up after repeated
-        readings, with a cooldown between repeats.
+        Alerts are generated automatically from the configured ranges.
       </p>
     </Panel>
   );

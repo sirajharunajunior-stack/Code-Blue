@@ -1,19 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, ClipboardCheck, Info, Radiation } from "lucide-react";
+import { ArrowUpRight, ClipboardCheck, Radiation } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Chip, LevelBadge, LevelDot, SourceTag } from "@/components/ui/Badge";
 import { Meter } from "@/components/ui/Meter";
 import { Sparkline } from "@/components/ui/Sparkline";
-import { getAssessment } from "@/lib/data/assessments";
-import { getHazard } from "@/lib/data/hazards";
-import { getMetric } from "@/lib/data/metrics";
-import { getLatestMetric, getReadingsInWindow } from "@/lib/data/vitals";
-import { formatMetricValue, formatRelative } from "@/lib/health/format";
+import {
+  getAssessment,
+  getHazard,
+  getLatestMetric,
+  getMetric,
+  getReadingsInWindow,
+} from "@/lib/data";
+import { formatMetricValue } from "@/lib/health/format";
 import { LEVELS, worstLevel } from "@/lib/health/levels";
-import { MISSION } from "@/lib/data/mission";
+import { writeSession } from "@/lib/utils/session";
 import type { BodySystem, HealthLevel } from "@/types";
 
 export function SystemPanel({ system, subjectId }: { system: BodySystem; subjectId: string }) {
@@ -36,13 +39,12 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
 
   const openAssessment = () => {
     if (!assessment) return;
-    window.sessionStorage.setItem("astra:focus-assessment", assessment.id);
+    writeSession("astra:focus-assessment", assessment.id);
     router.push("/assessment");
   };
 
   return (
     <Panel
-      label="System / detail"
       title={system.label}
       action={<LevelBadge level={level} size="xs" />}
       corners
@@ -52,7 +54,7 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
         <p className="text-[11.5px] leading-relaxed text-mute">{system.summary}</p>
 
         <div>
-          <div className="label-tech mb-1.5">Recorded indicators</div>
+          <div className="label-tech mb-1.5">Readings</div>
           <div className="space-y-1.5">
             {rows.map(({ metric, latest, spark }) => {
               const reading = latest;
@@ -99,30 +101,13 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
           </div>
           {rows.some((row) => !row.latest) && (
             <p className="mt-1.5 text-[9px] leading-snug text-dim">
-              Indicators without a live reading are collected during the matching guided assessment.
+              Missing readings are collected in the matching health check.
             </p>
           )}
         </div>
 
-        <div className="rounded-md border border-line/60 bg-panel-2/40 p-2.5">
-          <div className="label-tech mb-1">Function</div>
-          <p className="text-[11px] leading-relaxed text-mute">{system.function}</p>
-        </div>
-
         <div>
-          <div className="label-tech mb-1.5">Spaceflight effects</div>
-          <ul className="space-y-1">
-            {system.spaceflightEffects.map((effect) => (
-              <li key={effect} className="flex gap-1.5 text-[10.5px] leading-relaxed text-mute">
-                <span className="mt-[5px] size-1 shrink-0 rounded-full bg-signal/70" />
-                {effect}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <div className="label-tech mb-1.5">Watch for</div>
+          <div className="label-tech mb-1.5">What to watch for</div>
           <ul className="grid gap-1">
             {system.watchFor.map((item) => (
               <li
@@ -145,7 +130,7 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
                   key={id}
                   type="button"
                   onClick={() => {
-                    window.sessionStorage.setItem("astra:focus-hazard", hazard.id);
+                    writeSession("astra:focus-hazard", hazard.id);
                     router.push("/hazards");
                   }}
                   className="transition-colors hover:text-signal"
@@ -164,7 +149,7 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
           <div className="rounded-md border border-signal/25 bg-signal/5 p-2.5">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="label-tech mb-0.5">Linked assessment</div>
+                <div className="label-tech mb-0.5">Linked health check</div>
                 <p className="text-[11px] text-ink">{assessment.name}</p>
                 <p className="mt-0.5 text-[9.5px] text-dim">
                   {assessment.durationMinutes} min · {assessment.cadence}
@@ -173,18 +158,10 @@ export function SystemPanel({ system, subjectId }: { system: BodySystem; subject
               <ClipboardCheck className="size-4 shrink-0 text-signal/80" />
             </div>
             <Button variant="primary" size="sm" className="mt-2 w-full" onClick={openAssessment}>
-              Start assessment <ArrowUpRight className="size-3" />
+              Start check <ArrowUpRight className="size-3" />
             </Button>
           </div>
         )}
-
-        <div className="flex items-start gap-1.5 border-t border-line/60 pt-2 text-[9px] leading-snug text-dim">
-          <Info className="mt-px size-3 shrink-0" />
-          <span>
-            Effects described are general spaceflight physiology, not a diagnosis. Updated{" "}
-            {formatRelative(MISSION.now, MISSION.now)}.
-          </span>
-        </div>
       </div>
     </Panel>
   );

@@ -3,12 +3,14 @@
 Set HM_API_TOKEN to require an X-API-Token header on every /api route except /api/health.
 """
 import hmac
+import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
 import uvicorn
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -17,15 +19,21 @@ import db
 import service
 from sampler import Sampler
 
+log = logging.getLogger("api")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
+    app.state.started_at = time.time()
     app.state.sampler = None
     if config.SAMPLER_ENABLED:
         app.state.sampler = Sampler()
-        app.state.sampler.sample_once()      # so /api/health has data straight away
-        app.state.sampler.start()
+        app.state.sampler.start()            # takes one sample before returning
+    if not config.API_TOKEN:
+        log.warning("HM_API_TOKEN is not set: the API is readable by anyone who can reach port %s", config.PORT)
+    if config.SIMULATE:
+        log.warning("HM_SIMULATE is on: sensor values are simulated, not measured")
     yield
     if app.state.sampler:
         app.state.sampler.stop()
@@ -35,6 +43,18 @@ app = FastAPI(title="Astronaut Health Monitor", version="1.0", lifespan=lifespan
               description="Offline health-monitoring backend. Not a medical device: all levels are informational.")
 if config.CORS_ORIGINS:
     app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Headers a reverse proxy cannot always add, and a stable JSON error shape."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 def require_token(x_api_token: str = Header(default="")):
@@ -62,7 +82,16 @@ def subj():
 @app.get("/api/health", tags=["status"])
 def health():
     sampler = app.state.sampler
-    return {"status": "ok", "time": service.iso(time.time()), "db": config.DB_PATH,
+    db_ok = db.ping()
+    age = sampler.sample_age() if sampler else None
+    stale_after = max(60.0, config.SAMPLE_SECONDS * 4)
+    sampler_ok = sampler is None or (age is not None and age <= stale_after)
+    sensors_ok = not sampler or all(v.get("ok") is not False for v in sampler.status.values())
+    ok = db_ok and sampler_ok and sensors_ok
+    return {"status": "ok" if ok else "degraded", "time": service.iso(time.time()),
+            "db": os.path.basename(config.DB_PATH), "db_ok": db_ok,
+            "sample_age_seconds": None if age is None else round(age, 1),
+            "sampler_ok": sampler_ok, "sensors_ok": sensors_ok,
             "sensors": sampler.status if sampler else {},
             "baseline_model": bool(sampler and sampler.engine.baseline.loaded)}
 
@@ -135,4 +164,8 @@ def export_csv(subject: str = subj()):
 app.include_router(api)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=config.HOST, port=config.PORT)
+    # One process only: the sampler owns the live sensor loop, so running
+    # multiple workers would record every reading several times.
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)-7s %(name)s  %(message)s")
+    uvicorn.run(app, host=config.HOST, port=config.PORT, log_level="info")
