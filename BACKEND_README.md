@@ -62,9 +62,17 @@ Retrain weekly. Without `model.json` only the hard limits are used.
 
 ## Sensors
 
-`sensors.py` has one class per sensor. `TemperatureSensor` uses a DS18B20 if found; everything else is simulated.
-**Still to do:** `HeartRateSpO2Sensor._read_hardware()` (MAX30102 driver) and a real CO2 sensor in `CabinSensor`.
-Set `HM_SIMULATE=0` to make a missing sensor an error instead of falling back to simulation.
+`sensors.py` supports a DS18B20 on 1-Wire, a MAX30102 over I2C, and a Sensirion SCD41 over I2C.
+The MAX30102 heart-rate and SpO2 calculations are experimental estimates; neither they nor the DS18B20
+surface-temperature reading are medically validated. Do not use these readings for diagnosis or treatment.
+
+Simulation remains enabled by default. On a Raspberry Pi, install `requirements.txt`, enable I2C and
+1-Wire, and set `HM_SIMULATE=0` to use the physical sensors. The SCD41 reports cabin CO2 only; it
+does not measure a person's breathing rate. The camera monitor remains available at `/camera` for
+browser-estimated heart rate and breathing; its processing stays on the device.
+
+Keep camera readings on a separate subject from `local` when the Pi sampler is running, so camera
+estimates are not mixed with MAX30102 readings.
 
 ## Settings (environment variables)
 
@@ -100,8 +108,8 @@ four levels, trigger the same alerts and show the same safety precautions as eve
 
 In the page: pick who is being measured (or **+ New**), tap **Start**, fit your face in the oval and stay still.
 It saves about every 10 seconds, only while the signal is good. If the backend uses `HM_API_TOKEN`, the page asks for it.
-Tip: give each real person their own subject. Don't send camera readings to `local` while the simulated sensors are on
-(they write heart rate there too), and don't mix them into the A1-A3 dataset.
+Tip: give each real person their own subject. Don't send camera readings to `local` while the Pi sampler is on
+(the sampler and camera can both write heart rate there), and don't mix them into the A1-A3 dataset.
 
 Limits: camera heart rate is typically within a few bpm in good, steady light; breathing is rougher; SpO2, blood
 pressure and temperature are not measured. Not a medical device.

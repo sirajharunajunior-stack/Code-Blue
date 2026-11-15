@@ -63,4 +63,9 @@ class Sampler:
     def stop(self):
         self._stop.set()
         if self._thread:
-            self._thread.join(timeout=5)
+            self._thread.join(timeout=7)
+        for sensor in self.sensors:
+            try:
+                sensor.close()
+            except Exception:  # noqa: BLE001
+                log.exception("sensor %s failed to close", sensor.name)

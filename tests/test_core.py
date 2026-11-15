@@ -165,11 +165,18 @@ def test_concurrent_alert_checks_respect_one_cooldown():
 
 def test_disabled_simulation_does_not_report_cabin_sensor():
     previous_simulation = config.SIMULATE
+    original_open = sensors_mod._open_i2c_bus
+
+    def no_i2c_bus():
+        raise RuntimeError("I2C unavailable")
+
     try:
         config.SIMULATE = False
-        assert raises(NotImplementedError, sensors_mod.CabinSensor)
+        sensors_mod._open_i2c_bus = no_i2c_bus
+        assert raises(RuntimeError, sensors_mod.CabinSensor)
     finally:
         config.SIMULATE = previous_simulation
+        sensors_mod._open_i2c_bus = original_open
 
 
 def test_new_database_bootstraps_and_reinitializes():
